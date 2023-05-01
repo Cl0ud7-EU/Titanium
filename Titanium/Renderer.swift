@@ -18,6 +18,7 @@ class Renderer: NSObject, MTKViewDelegate
     var m_Library: MTLLibrary!
     var m_CommandBuffer: MTLCommandBuffer!
     var m_VertexBuffer: MTLBuffer!
+    var m_VertexColorBuffer: MTLBuffer!
     var m_RenderPipelineState: MTLRenderPipelineState!
     
     
@@ -34,7 +35,7 @@ class Renderer: NSObject, MTKViewDelegate
         print("Graphics Device name: \(m_Device.name)")
         
         super.init()
-        
+
         m_View.device = device
         m_View.delegate = self
         m_View.clearColor = MTLClearColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1.0)
@@ -51,24 +52,26 @@ class Renderer: NSObject, MTKViewDelegate
         
         BuildShaders()
         BuildBuffers()
-        
+
         guard let RenderPassDescriptor = view.currentRenderPassDescriptor
         else {
             return;
         }
-        
+
         m_CommandBuffer = m_CommandQueue.makeCommandBuffer()!
-        
+
         let RenderCommandEconder =  m_CommandBuffer.makeRenderCommandEncoder(descriptor: RenderPassDescriptor)!
-        
+
         RenderCommandEconder.setRenderPipelineState(m_RenderPipelineState)
         RenderCommandEconder.setVertexBuffer(m_VertexBuffer, offset: 0, index: 0)
+        RenderCommandEconder.setVertexBuffer(m_VertexBuffer, offset: 0, index: 1)
+        
         RenderCommandEconder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-        
+
         RenderCommandEconder.endEncoding();
-        
+
         m_CommandBuffer.present(view.currentDrawable!);
-        
+
         m_CommandBuffer.commit();
     }
     
@@ -85,11 +88,27 @@ class Renderer: NSObject, MTKViewDelegate
         RenderPipelineDescriptor.fragmentFunction = m_Library.makeFunction(name: "fragment_main")!
         RenderPipelineDescriptor.colorAttachments[0].pixelFormat = m_View.colorPixelFormat
         
+        let VertexDescriptor = MTLVertexDescriptor()
+        
+        VertexDescriptor.attributes[0].format = .float3
+        VertexDescriptor.attributes[0].offset = 0
+        VertexDescriptor.attributes[0].bufferIndex = 0
+        
+        VertexDescriptor.attributes[1].format = .float4
+        VertexDescriptor.attributes[1].offset = 0
+        VertexDescriptor.attributes[1].bufferIndex = 1
+
+        VertexDescriptor.layouts[0].stride = MemoryLayout<SIMD3<Float>>.stride
+        VertexDescriptor.layouts[1].stride = MemoryLayout<SIMD4<Float>>.stride
+        
+        RenderPipelineDescriptor.vertexDescriptor = VertexDescriptor
+        
         do {
             m_RenderPipelineState = try m_Device.makeRenderPipelineState(descriptor: RenderPipelineDescriptor)
         } catch {
             fatalError("Error creating RenderPipelineState: \(error)")
         }
+        
         
     }
     
@@ -101,12 +120,18 @@ class Renderer: NSObject, MTKViewDelegate
             SIMD3<Float>(+0.8,  0.8, 0.0),
         ]
         
+        var Colors = [
+            SIMD4<Float>(1.0, 0.0, 1.0, 1.0),
+            SIMD4<Float>(0.0, 1.0, 1.0, 1.0),
+            SIMD4<Float>(1.0, 1.0, 0.0, 1.0),
+        ]
+        
         // Creates the VertexBuffer and copies the vertex positions.
         // MemoryLayout<SIMD3<Float>>.stride returns the size taking into account the aligment, so this would be 4+4+4 = 12 + 4bytes for aligment
         //print(MemoryLayout<SIMD3<Float>>.stride)
         m_VertexBuffer = m_Device.makeBuffer(bytes: &Positions, length: MemoryLayout<SIMD3<Float>>.stride * Positions.count, options: .storageModeShared)
         
-        
+        m_VertexColorBuffer = m_Device.makeBuffer(bytes: &Colors, length: MemoryLayout<SIMD4<Float>>.stride * Colors.count, options: .storageModeShared)
         
     }
 }
