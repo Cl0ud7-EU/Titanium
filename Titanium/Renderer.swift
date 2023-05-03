@@ -9,19 +9,31 @@ import Foundation
 import Metal
 import MetalKit
 
+func align(_ value: Int, upTo alignment: Int) -> Int {
+    return ((value + alignment - 1) / alignment) * alignment
+}
+
+let MaxFramesInFlight = 3;
+
 class Renderer: NSObject, MTKViewDelegate
 {
     let m_Device: MTLDevice!
     let m_CommandQueue: MTLCommandQueue!
     let m_View: MTKView!
 
-    var m_Library: MTLLibrary!
-    var m_CommandBuffer: MTLCommandBuffer!
-    var m_VertexBuffer: MTLBuffer!
-    var m_VertexColorBuffer: MTLBuffer!
-    var m_RenderPipelineState: MTLRenderPipelineState!
+    private var m_Library: MTLLibrary!
+    private var m_CommandBuffer: MTLCommandBuffer!
+    private var m_VertexBuffer: MTLBuffer!
+    private var m_VertexColorBuffer: MTLBuffer!
+    private var m_RenderPipelineState: MTLRenderPipelineState!
     
+    private var m_FrameSempahore = DispatchSemaphore(value: MaxFramesInFlight)
+    private var m_FrameIndex: Int
     
+    private var m_ConstantBuffer: MTLBuffer!
+    private let m_ConstantsSize: Int
+    private let m_ConstantsStride: Int
+    private var m_ConstantsBufferOffset: Int
     
     
     init(device: MTLDevice, view: MTKView ) {
@@ -33,6 +45,12 @@ class Renderer: NSObject, MTKViewDelegate
         self.m_Library = m_Device.makeDefaultLibrary()
         self.m_CommandQueue = m_Device.makeCommandQueue()!
         print("Graphics Device name: \(m_Device.name)")
+        
+        self.m_FrameIndex = 0
+        
+        self.m_ConstantsSize = MemoryLayout<SIMD3<Float>>.size
+        self.m_ConstantsStride = align(m_ConstantsSize, upTo: 256)
+        self.m_ConstantsBufferOffset = 0
         
         super.init()
 
@@ -50,9 +68,13 @@ class Renderer: NSObject, MTKViewDelegate
     
     func draw(in view: MTKView) {
         
+        m_FrameSempahore.wait()
+        
+        
         BuildShaders()
         BuildBuffers()
-
+        UpdateConstants()
+        
         guard let RenderPassDescriptor = view.currentRenderPassDescriptor
         else {
             return;
@@ -64,22 +86,29 @@ class Renderer: NSObject, MTKViewDelegate
 
         RenderCommandEconder.setRenderPipelineState(m_RenderPipelineState)
         RenderCommandEconder.setVertexBuffer(m_VertexBuffer, offset: 0, index: 0)
-        RenderCommandEconder.setVertexBuffer(m_VertexBuffer, offset: 0, index: 1)
+        RenderCommandEconder.setVertexBuffer(m_VertexColorBuffer, offset: 0, index: 1)
+        RenderCommandEconder.setVertexBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 2)
         
         RenderCommandEconder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
 
         RenderCommandEconder.endEncoding();
 
         m_CommandBuffer.present(view.currentDrawable!);
-
+        
+        m_CommandBuffer.addCompletedHandler { [weak self] _ in
+                    self?.m_FrameSempahore.signal()
+        }
+        
         m_CommandBuffer.commit();
+        
+        m_FrameIndex += 1
     }
     
     func BuildShaders()
     {
         for name in m_Library.functionNames {
             let function = m_Library.makeFunction(name: name)!
-            print("\(function)")
+            //print("\(function)")
         }
         
         let RenderPipelineDescriptor = MTLRenderPipelineDescriptor();
@@ -121,9 +150,9 @@ class Renderer: NSObject, MTKViewDelegate
         ]
         
         var Colors = [
-            SIMD4<Float>(1.0, 0.0, 1.0, 1.0),
-            SIMD4<Float>(0.0, 1.0, 1.0, 1.0),
-            SIMD4<Float>(1.0, 1.0, 0.0, 1.0),
+            SIMD4<Float>(1.0, 0.0, 0.0, 1.0),
+            SIMD4<Float>(0.0, 1.0, 0.0, 1.0),
+            SIMD4<Float>(0.0, 0.0, 1.0, 1.0),
         ]
         
         // Creates the VertexBuffer and copies the vertex positions.
@@ -133,5 +162,21 @@ class Renderer: NSObject, MTKViewDelegate
         
         m_VertexColorBuffer = m_Device.makeBuffer(bytes: &Colors, length: MemoryLayout<SIMD4<Float>>.stride * Colors.count, options: .storageModeShared)
         
+        m_ConstantBuffer = m_Device.makeBuffer(length: m_ConstantsStride * MaxFramesInFlight, options: .storageModeShared)
+    }
+    
+    func UpdateConstants()
+    {
+        let Speed = 3.0
+        let Time = CACurrentMediaTime()
+        let RotationMagnitude: Float = 0.1
+        let RotationAngle = Float(fmod(Speed * Time, .pi * 2))
+        var PositionOffset = RotationMagnitude * SIMD3<Float>(cos(RotationAngle), sin(RotationAngle), 0.0)
+        
+        print(PositionOffset)
+        
+        m_ConstantsBufferOffset = (m_FrameIndex % MaxFramesInFlight) * m_ConstantsStride
+        let Constants = m_ConstantBuffer.contents().advanced(by: m_ConstantsBufferOffset)
+        Constants.copyMemory(from: &PositionOffset, byteCount: m_ConstantsSize)
     }
 }
