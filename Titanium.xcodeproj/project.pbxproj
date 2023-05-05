@@ -75,16 +75,40 @@
 		030C4B7529FA826F00E577C7 /* Titanium */ = {
 			isa = PBXGroup;
 			children = (
-				030C4B7629FA826F00E577C7 /* AppDelegate.swift */,
-				030C4B7829FA826F00E577C7 /* ViewController.swift */,
-				030C4B7C29FA827200E577C7 /* Main.storyboard */,
+				03D24FC42A051528007FB4D0 /* Core */,
+				03D24FC22A0514AF007FB4D0 /* Mac */,
 				03EEDB4B29FC84B4002BA24C /* iOS */,
+				03D24FC32A051508007FB4D0 /* Renderer */,
 				030C4B7A29FA827200E577C7 /* Assets.xcassets */,
 				030C4B7F29FA827200E577C7 /* Titanium.entitlements */,
+			);
+			path = Titanium;
+			sourceTree = "<group>";
+		};
+		03D24FC22A0514AF007FB4D0 /* Mac */ = {
+			isa = PBXGroup;
+			children = (
+				030C4B7C29FA827200E577C7 /* Main.storyboard */,
+			);
+			path = Mac;
+			sourceTree = "<group>";
+		};
+		03D24FC32A051508007FB4D0 /* Renderer */ = {
+			isa = PBXGroup;
+			children = (
 				030C4BBA29FADADB00E577C7 /* Renderer.swift */,
 				030C4BBC29FB02F500E577C7 /* Shader.metal */,
 			);
-			path = Titanium;
+			path = Renderer;
+			sourceTree = "<group>";
+		};
+		03D24FC42A051528007FB4D0 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				030C4B7629FA826F00E577C7 /* AppDelegate.swift */,
+				030C4B7829FA826F00E577C7 /* ViewController.swift */,
+			);
+			path = Core;
 			sourceTree = "<group>";
 		};
 		03EEDB4B29FC84B4002BA24C /* iOS */ = {

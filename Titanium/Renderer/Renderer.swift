@@ -25,6 +25,7 @@ class Renderer: NSObject, MTKViewDelegate
     private var m_CommandBuffer: MTLCommandBuffer!
     private var m_VertexBuffer: MTLBuffer!
     private var m_VertexColorBuffer: MTLBuffer!
+    private var m_IndexBuffer: MTLBuffer!
     private var m_RenderPipelineState: MTLRenderPipelineState!
     
     private var m_FrameSempahore = DispatchSemaphore(value: MaxFramesInFlight)
@@ -88,8 +89,9 @@ class Renderer: NSObject, MTKViewDelegate
         RenderCommandEconder.setVertexBuffer(m_VertexBuffer, offset: 0, index: 0)
         RenderCommandEconder.setVertexBuffer(m_VertexColorBuffer, offset: 0, index: 1)
         RenderCommandEconder.setVertexBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 2)
+        RenderCommandEconder.drawIndexedPrimitives(type: .triangle, indexCount: 6, indexType: .uint16, indexBuffer: m_IndexBuffer, indexBufferOffset: 0)
         
-        RenderCommandEconder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+        //RenderCommandEconder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
 
         RenderCommandEconder.endEncoding();
 
@@ -138,21 +140,35 @@ class Renderer: NSObject, MTKViewDelegate
             fatalError("Error creating RenderPipelineState: \(error)")
         }
         
-        
     }
     
     func BuildBuffers()
     {
         var Positions = [
-            SIMD3<Float>(-0.8,  0.8, 0.0),
-            SIMD3<Float>(0.0, -0.8, 0.0),
-            SIMD3<Float>(+0.8,  0.8, 0.0),
+            SIMD3<Float>(-0.5,  -0.5, 0.0),
+            SIMD3<Float>(-0.5, 0.5, 0.0),
+            SIMD3<Float>(0.5,  0.5, 0.0),
+            SIMD3<Float>(0.5,  -0.5, 0.0)
+          
         ]
         
         var Colors = [
             SIMD4<Float>(1.0, 0.0, 0.0, 1.0),
             SIMD4<Float>(0.0, 1.0, 0.0, 1.0),
             SIMD4<Float>(0.0, 0.0, 1.0, 1.0),
+            SIMD4<Float>(1.0, 0.0, 1.0, 1.0)
+        ]
+        
+        var Indices =
+        [
+            UInt16(0),
+            UInt16(1),
+            UInt16(2),
+            UInt16(0),
+            UInt16(2),
+            UInt16(3)
+//            SIMD3<UInt16>(1, 2, 3),
+//            SIMD3<UInt16>(0, 1, 2)
         ]
         
         // Creates the VertexBuffer and copies the vertex positions.
@@ -161,6 +177,8 @@ class Renderer: NSObject, MTKViewDelegate
         m_VertexBuffer = m_Device.makeBuffer(bytes: &Positions, length: MemoryLayout<SIMD3<Float>>.stride * Positions.count, options: .storageModeShared)
         
         m_VertexColorBuffer = m_Device.makeBuffer(bytes: &Colors, length: MemoryLayout<SIMD4<Float>>.stride * Colors.count, options: .storageModeShared)
+        
+        m_IndexBuffer = m_Device.makeBuffer(bytes: Indices, length: MemoryLayout<UInt16>.size * Indices.count, options: .storageModeShared)
         
         m_ConstantBuffer = m_Device.makeBuffer(length: m_ConstantsStride * MaxFramesInFlight, options: .storageModeShared)
     }
@@ -178,5 +196,10 @@ class Renderer: NSObject, MTKViewDelegate
         m_ConstantsBufferOffset = (m_FrameIndex % MaxFramesInFlight) * m_ConstantsStride
         let Constants = m_ConstantBuffer.contents().advanced(by: m_ConstantsBufferOffset)
         Constants.copyMemory(from: &PositionOffset, byteCount: m_ConstantsSize)
+    }
+    
+    func CreateCube()
+    {
+        
     }
 }
