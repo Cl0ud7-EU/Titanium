@@ -18,11 +18,9 @@ struct VertexOut {
     float4 color;
 };
 
-vertex VertexOut vertex_main(VertexData in [[stage_in]], constant float3 &positionOffset [[buffer(2)]])
-{
+vertex VertexOut vertex_main(VertexData in [[stage_in]], constant float4x4 &transform [[buffer(2)]]) {
     VertexOut output;
-    output.position = float4(in.position + positionOffset, 1.0);
-    //output.position = float4(in.position, 1.0);
+    output.position = transform * float4(in.position, 1.0);
     output.color = in.color;
     return output;
 }

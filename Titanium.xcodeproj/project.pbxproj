@@ -13,6 +13,7 @@
 		030C4B7E29FA827200E577C7 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 030C4B7C29FA827200E577C7 /* Main.storyboard */; };
 		030C4BBB29FADADB00E577C7 /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4BBA29FADADB00E577C7 /* Renderer.swift */; };
 		030C4BBD29FB02F500E577C7 /* Shader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030C4BBC29FB02F500E577C7 /* Shader.metal */; };
+		03D24FC62A0515B2007FB4D0 /* Math.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03D24FC52A0515B2007FB4D0 /* Math.swift */; };
 		03EFAC4F29FC8A6D00332D01 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4B7629FA826F00E577C7 /* AppDelegate.swift */; };
 		03EFAC5029FC8A6D00332D01 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4B7829FA826F00E577C7 /* ViewController.swift */; };
 		03EFAC5129FC8A6D00332D01 /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4BBA29FADADB00E577C7 /* Renderer.swift */; };
@@ -31,6 +32,7 @@
 		030C4B7F29FA827200E577C7 /* Titanium.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Titanium.entitlements; sourceTree = "<group>"; };
 		030C4BBA29FADADB00E577C7 /* Renderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renderer.swift; sourceTree = "<group>"; };
 		030C4BBC29FB02F500E577C7 /* Shader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shader.metal; sourceTree = "<group>"; };
+		03D24FC52A0515B2007FB4D0 /* Math.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Math.swift; sourceTree = "<group>"; };
 		03EEDB5029FC84F2002BA24C /* Titanium-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Titanium-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		03EEDB6B29FC8661002BA24C /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		03EEDB6C29FC8661002BA24C /* Main.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Main.storyboard; sourceTree = "<group>"; };
@@ -107,6 +109,7 @@
 			children = (
 				030C4B7629FA826F00E577C7 /* AppDelegate.swift */,
 				030C4B7829FA826F00E577C7 /* ViewController.swift */,
+				03D24FC52A0515B2007FB4D0 /* Math.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -226,6 +229,7 @@
 				030C4B7929FA826F00E577C7 /* ViewController.swift in Sources */,
 				030C4BBB29FADADB00E577C7 /* Renderer.swift in Sources */,
 				030C4B7729FA826F00E577C7 /* AppDelegate.swift in Sources */,
+				03D24FC62A0515B2007FB4D0 /* Math.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

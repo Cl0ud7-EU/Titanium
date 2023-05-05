@@ -9,10 +9,6 @@ import Foundation
 import Metal
 import MetalKit
 
-func align(_ value: Int, upTo alignment: Int) -> Int {
-    return ((value + alignment - 1) / alignment) * alignment
-}
-
 let MaxFramesInFlight = 3;
 
 class Renderer: NSObject, MTKViewDelegate
@@ -49,7 +45,7 @@ class Renderer: NSObject, MTKViewDelegate
         
         self.m_FrameIndex = 0
         
-        self.m_ConstantsSize = MemoryLayout<SIMD3<Float>>.size
+        self.m_ConstantsSize = MemoryLayout<simd_float4x4>.size //MemoryLayout<SIMD3<Float>>.size
         self.m_ConstantsStride = align(m_ConstantsSize, upTo: 256)
         self.m_ConstantsBufferOffset = 0
         
@@ -106,8 +102,7 @@ class Renderer: NSObject, MTKViewDelegate
         m_FrameIndex += 1
     }
     
-    func BuildShaders()
-    {
+    func BuildShaders() {
         for name in m_Library.functionNames {
             let function = m_Library.makeFunction(name: name)!
             //print("\(function)")
@@ -142,8 +137,7 @@ class Renderer: NSObject, MTKViewDelegate
         
     }
     
-    func BuildBuffers()
-    {
+    func BuildBuffers() {
         var Positions = [
             SIMD3<Float>(-0.5,  -0.5, 0.0),
             SIMD3<Float>(-0.5, 0.5, 0.0),
@@ -183,23 +177,34 @@ class Renderer: NSObject, MTKViewDelegate
         m_ConstantBuffer = m_Device.makeBuffer(length: m_ConstantsStride * MaxFramesInFlight, options: .storageModeShared)
     }
     
-    func UpdateConstants()
-    {
-        let Speed = 3.0
-        let Time = CACurrentMediaTime()
-        let RotationMagnitude: Float = 0.1
-        let RotationAngle = Float(fmod(Speed * Time, .pi * 2))
-        var PositionOffset = RotationMagnitude * SIMD3<Float>(cos(RotationAngle), sin(RotationAngle), 0.0)
+    func UpdateConstants() {
         
-        print(PositionOffset)
+        let Scale = SIMD3<Float>(300.0, 300.0, 300.0)
+        let ScaleMatrix = simd_float4x4(Scale: Scale, M: matrix_identity_float4x4)
+        
+        let Translate = SIMD3<Float>(100, 100, 0.0)
+        let TranslateMatrix = simd_float4x4(Translate: Translate, M: matrix_identity_float4x4)
+        
+        let ModelMatrix = TranslateMatrix * ScaleMatrix
+        
+        let AspectRatio = Float(m_View.drawableSize.width / m_View.drawableSize.height)
+        let CanvasWidth: Float = 1280
+        let CanvasHeight = CanvasWidth / AspectRatio
+        let ProjectionMatrix = simd_float4x4(OrthographicProjection: CanvasWidth / 2,
+                                             left: -CanvasWidth / 2,
+                                             top: CanvasHeight / 2,
+                                             bottom: -CanvasHeight / 2,
+                                             near: 0.0,
+                                             far: 1.0)
+        
+        var TransformMatrix = ProjectionMatrix * ModelMatrix 
         
         m_ConstantsBufferOffset = (m_FrameIndex % MaxFramesInFlight) * m_ConstantsStride
         let Constants = m_ConstantBuffer.contents().advanced(by: m_ConstantsBufferOffset)
-        Constants.copyMemory(from: &PositionOffset, byteCount: m_ConstantsSize)
+        Constants.copyMemory(from: &TransformMatrix, byteCount: m_ConstantsSize)
     }
     
-    func CreateCube()
-    {
+    func CreateCube() {
         
     }
 }
