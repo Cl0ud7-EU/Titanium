@@ -13,6 +13,8 @@
 		030C4B7E29FA827200E577C7 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 030C4B7C29FA827200E577C7 /* Main.storyboard */; };
 		030C4BBB29FADADB00E577C7 /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4BBA29FADADB00E577C7 /* Renderer.swift */; };
 		030C4BBD29FB02F500E577C7 /* Shader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030C4BBC29FB02F500E577C7 /* Shader.metal */; };
+		035C20032A0C1F6200012346 /* DrawCall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035C20022A0C1F6200012346 /* DrawCall.swift */; };
+		03C269752A0AABBE000A998C /* Mesh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C269742A0AABBE000A998C /* Mesh.swift */; };
 		03D24FC62A0515B2007FB4D0 /* Math.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03D24FC52A0515B2007FB4D0 /* Math.swift */; };
 		03EFAC4F29FC8A6D00332D01 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4B7629FA826F00E577C7 /* AppDelegate.swift */; };
 		03EFAC5029FC8A6D00332D01 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4B7829FA826F00E577C7 /* ViewController.swift */; };
@@ -32,6 +34,8 @@
 		030C4B7F29FA827200E577C7 /* Titanium.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Titanium.entitlements; sourceTree = "<group>"; };
 		030C4BBA29FADADB00E577C7 /* Renderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renderer.swift; sourceTree = "<group>"; };
 		030C4BBC29FB02F500E577C7 /* Shader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shader.metal; sourceTree = "<group>"; };
+		035C20022A0C1F6200012346 /* DrawCall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawCall.swift; sourceTree = "<group>"; };
+		03C269742A0AABBE000A998C /* Mesh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mesh.swift; sourceTree = "<group>"; };
 		03D24FC52A0515B2007FB4D0 /* Math.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Math.swift; sourceTree = "<group>"; };
 		03EEDB5029FC84F2002BA24C /* Titanium-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Titanium-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		03EEDB6B29FC8661002BA24C /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -78,13 +82,30 @@
 			isa = PBXGroup;
 			children = (
 				03D24FC42A051528007FB4D0 /* Core */,
-				03D24FC22A0514AF007FB4D0 /* Mac */,
-				03EEDB4B29FC84B4002BA24C /* iOS */,
 				03D24FC32A051508007FB4D0 /* Renderer */,
+				03C269732A0AAB94000A998C /* Resources */,
+				03C269722A0AAB80000A998C /* Platform */,
 				030C4B7A29FA827200E577C7 /* Assets.xcassets */,
 				030C4B7F29FA827200E577C7 /* Titanium.entitlements */,
 			);
 			path = Titanium;
+			sourceTree = "<group>";
+		};
+		03C269722A0AAB80000A998C /* Platform */ = {
+			isa = PBXGroup;
+			children = (
+				03D24FC22A0514AF007FB4D0 /* Mac */,
+				03EEDB4B29FC84B4002BA24C /* iOS */,
+			);
+			path = Platform;
+			sourceTree = "<group>";
+		};
+		03C269732A0AAB94000A998C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				03C269742A0AABBE000A998C /* Mesh.swift */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		03D24FC22A0514AF007FB4D0 /* Mac */ = {
@@ -100,6 +121,7 @@
 			children = (
 				030C4BBA29FADADB00E577C7 /* Renderer.swift */,
 				030C4BBC29FB02F500E577C7 /* Shader.metal */,
+				035C20022A0C1F6200012346 /* DrawCall.swift */,
 			);
 			path = Renderer;
 			sourceTree = "<group>";
@@ -225,9 +247,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				03C269752A0AABBE000A998C /* Mesh.swift in Sources */,
 				030C4BBD29FB02F500E577C7 /* Shader.metal in Sources */,
 				030C4B7929FA826F00E577C7 /* ViewController.swift in Sources */,
 				030C4BBB29FADADB00E577C7 /* Renderer.swift in Sources */,
+				035C20032A0C1F6200012346 /* DrawCall.swift in Sources */,
 				030C4B7729FA826F00E577C7 /* AppDelegate.swift in Sources */,
 				03D24FC62A0515B2007FB4D0 /* Math.swift in Sources */,
 			);
