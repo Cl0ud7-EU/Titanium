@@ -11,9 +11,10 @@ import MetalKit
 
 let MaxFramesInFlight = 3;
 
-class Renderer: NSObject, MTKViewDelegate
-{
-    let m_Device: MTLDevice!
+var m_Device: MTLDevice!
+
+class Renderer: NSObject, MTKViewDelegate {
+    
     let m_CommandQueue: MTLCommandQueue!
     let m_View: MTKView!
 
@@ -32,12 +33,15 @@ class Renderer: NSObject, MTKViewDelegate
     private let m_ConstantsStride: Int
     private var m_ConstantsBufferOffset: Int
     
+    private var m_Entities: [Entity] = []
+    private var m_Meshes: [Mesh] = []
+    private var m_Draws: [Draw] = []
     
     init(device: MTLDevice, view: MTKView ) {
         
         
         // perform some initialization here
-        self.m_Device = device
+        m_Device = device
         self.m_View = view
         self.m_Library = m_Device.makeDefaultLibrary()
         self.m_CommandQueue = m_Device.makeCommandQueue()!
@@ -55,7 +59,10 @@ class Renderer: NSObject, MTKViewDelegate
         m_View.delegate = self
         m_View.clearColor = MTLClearColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1.0)
         
-        
+        CreateScene()
+        m_RenderPipelineState = CreateRenderPipelineState()
+    
+        m_ConstantBuffer = m_Device.makeBuffer(length: m_ConstantsStride * MaxFramesInFlight, options: .storageModeShared)
     }
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -67,122 +74,57 @@ class Renderer: NSObject, MTKViewDelegate
         
         m_FrameSempahore.wait()
         
+        guard let RenderPassDescriptor = view.currentRenderPassDescriptor else { return }
         
-        BuildShaders()
-        BuildBuffers()
-        UpdateConstants()
+        guard let CommandBuffer = m_CommandQueue.makeCommandBuffer() else { return }
+
+        let RenderCommandEncoder = CommandBuffer.makeRenderCommandEncoder(descriptor: RenderPassDescriptor)!
         
-        guard let RenderPassDescriptor = view.currentRenderPassDescriptor
-        else {
-            return;
+        RenderCommandEncoder.setRenderPipelineState(m_RenderPipelineState)
+        
+        for Entity in m_Entities
+        {
+            UpdateConstants(Translation: Entity.m_Translation)
+            
+            RenderCommandEncoder.setVertexBuffer(Entity.m_Mesh.m_Draw.m_VertexBuffer, offset: 0, index: 0)
+            RenderCommandEncoder.setVertexBuffer(Entity.m_Mesh.m_Draw.m_VertexColorBuffer, offset: 0, index: 1)
+            RenderCommandEncoder.setVertexBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 2)
+            RenderCommandEncoder.drawIndexedPrimitives(type: Entity.m_Mesh.m_Draw.m_PrimitiveType,
+                                                       indexCount: Entity.m_Mesh.m_Draw.m_IndexCount,
+                                                       indexType: Entity.m_Mesh.m_Draw.m_IndexType,
+                                                       indexBuffer: Entity.m_Mesh.m_Draw.m_IndexBuffer, indexBufferOffset: 0)
+            
         }
-
-        m_CommandBuffer = m_CommandQueue.makeCommandBuffer()!
-
-        let RenderCommandEconder =  m_CommandBuffer.makeRenderCommandEncoder(descriptor: RenderPassDescriptor)!
-
-        RenderCommandEconder.setRenderPipelineState(m_RenderPipelineState)
-        RenderCommandEconder.setVertexBuffer(m_VertexBuffer, offset: 0, index: 0)
-        RenderCommandEconder.setVertexBuffer(m_VertexColorBuffer, offset: 0, index: 1)
-        RenderCommandEconder.setVertexBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 2)
-        RenderCommandEconder.drawIndexedPrimitives(type: .triangle, indexCount: 6, indexType: .uint16, indexBuffer: m_IndexBuffer, indexBufferOffset: 0)
+        RenderCommandEncoder.endEncoding();
         
-        //RenderCommandEconder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-
-        RenderCommandEconder.endEncoding();
-
-        m_CommandBuffer.present(view.currentDrawable!);
+        CommandBuffer.present(view.currentDrawable!);
         
-        m_CommandBuffer.addCompletedHandler { [weak self] _ in
+        CommandBuffer.addCompletedHandler { [weak self] _ in
                     self?.m_FrameSempahore.signal()
         }
         
-        m_CommandBuffer.commit();
+        CommandBuffer.commit();
         
         m_FrameIndex += 1
     }
     
-    func BuildShaders() {
-        for name in m_Library.functionNames {
-            let function = m_Library.makeFunction(name: name)!
-            //print("\(function)")
-        }
-        
+    func BuildShaders() -> MTLRenderPipelineDescriptor {
+
         let RenderPipelineDescriptor = MTLRenderPipelineDescriptor();
         
         RenderPipelineDescriptor.vertexFunction = m_Library.makeFunction(name: "vertex_main")!
         RenderPipelineDescriptor.fragmentFunction = m_Library.makeFunction(name: "fragment_main")!
         RenderPipelineDescriptor.colorAttachments[0].pixelFormat = m_View.colorPixelFormat
         
-        let VertexDescriptor = MTLVertexDescriptor()
-        
-        VertexDescriptor.attributes[0].format = .float3
-        VertexDescriptor.attributes[0].offset = 0
-        VertexDescriptor.attributes[0].bufferIndex = 0
-        
-        VertexDescriptor.attributes[1].format = .float4
-        VertexDescriptor.attributes[1].offset = 0
-        VertexDescriptor.attributes[1].bufferIndex = 1
-
-        VertexDescriptor.layouts[0].stride = MemoryLayout<SIMD3<Float>>.stride
-        VertexDescriptor.layouts[1].stride = MemoryLayout<SIMD4<Float>>.stride
-        
-        RenderPipelineDescriptor.vertexDescriptor = VertexDescriptor
-        
-        do {
-            m_RenderPipelineState = try m_Device.makeRenderPipelineState(descriptor: RenderPipelineDescriptor)
-        } catch {
-            fatalError("Error creating RenderPipelineState: \(error)")
-        }
-        
+        return RenderPipelineDescriptor
     }
     
-    func BuildBuffers() {
-        var Positions = [
-            SIMD3<Float>(-0.5,  -0.5, 0.0),
-            SIMD3<Float>(-0.5, 0.5, 0.0),
-            SIMD3<Float>(0.5,  0.5, 0.0),
-            SIMD3<Float>(0.5,  -0.5, 0.0)
-          
-        ]
-        
-        var Colors = [
-            SIMD4<Float>(1.0, 0.0, 0.0, 1.0),
-            SIMD4<Float>(0.0, 1.0, 0.0, 1.0),
-            SIMD4<Float>(0.0, 0.0, 1.0, 1.0),
-            SIMD4<Float>(1.0, 0.0, 1.0, 1.0)
-        ]
-        
-        var Indices =
-        [
-            UInt16(0),
-            UInt16(1),
-            UInt16(2),
-            UInt16(0),
-            UInt16(2),
-            UInt16(3)
-//            SIMD3<UInt16>(1, 2, 3),
-//            SIMD3<UInt16>(0, 1, 2)
-        ]
-        
-        // Creates the VertexBuffer and copies the vertex positions.
-        // MemoryLayout<SIMD3<Float>>.stride returns the size taking into account the aligment, so this would be 4+4+4 = 12 + 4bytes for aligment
-        //print(MemoryLayout<SIMD3<Float>>.stride)
-        m_VertexBuffer = m_Device.makeBuffer(bytes: &Positions, length: MemoryLayout<SIMD3<Float>>.stride * Positions.count, options: .storageModeShared)
-        
-        m_VertexColorBuffer = m_Device.makeBuffer(bytes: &Colors, length: MemoryLayout<SIMD4<Float>>.stride * Colors.count, options: .storageModeShared)
-        
-        m_IndexBuffer = m_Device.makeBuffer(bytes: Indices, length: MemoryLayout<UInt16>.size * Indices.count, options: .storageModeShared)
-        
-        m_ConstantBuffer = m_Device.makeBuffer(length: m_ConstantsStride * MaxFramesInFlight, options: .storageModeShared)
-    }
-    
-    func UpdateConstants() {
+    func UpdateConstants(Translation:  SIMD3<Float>) {
         
         let Scale = SIMD3<Float>(300.0, 300.0, 300.0)
         let ScaleMatrix = simd_float4x4(Scale: Scale, M: matrix_identity_float4x4)
         
-        let Translate = SIMD3<Float>(100, 100, 0.0)
+        let Translate = Translation//SIMD3<Float>(100, 100, 0.0)
         let TranslateMatrix = simd_float4x4(Translate: Translate, M: matrix_identity_float4x4)
         
         let ModelMatrix = TranslateMatrix * ScaleMatrix
@@ -205,6 +147,86 @@ class Renderer: NSObject, MTKViewDelegate
     }
     
     func CreateCube() {
+
+        let Positions = [
+            SIMD3<Float>(0.0, 0.0, 0.0),
+            SIMD3<Float>(1.0, 0.0, 0.0),
+            SIMD3<Float>(1.0, 1.0, 0.0),
+            SIMD3<Float>(1.0, 1.0, 1.0),
+            SIMD3<Float>(1.0, 0.0, 1.0),
+            SIMD3<Float>(0.0, 1.0, 0.0),
+            SIMD3<Float>(0.0, 1.0, 1.0),
+            SIMD3<Float>(0.0, 0.0, 1.0)
+        ]
         
+        let Colors = [
+            SIMD4<Float>(1.0, 0.0, 0.0, 1.0),
+            SIMD4<Float>(0.0, 1.0, 0.0, 1.0),
+            SIMD4<Float>(0.0, 0.0, 1.0, 1.0),
+            SIMD4<Float>(1.0, 0.0, 1.0, 1.0),
+            SIMD4<Float>(1.0, 0.0, 0.0, 1.0),
+            SIMD4<Float>(0.0, 1.0, 0.0, 1.0),
+            SIMD4<Float>(0.0, 0.0, 1.0, 1.0),
+            SIMD4<Float>(1.0, 0.0, 1.0, 1.0)
+        ]
+        
+        let Indices: [UInt16] = [
+            // Front face
+            0, 1, 5,    // Triangle 1
+            1, 5, 2,    // Triangle 2
+
+            // Back face
+            4, 3, 7,    // Triangle 1
+            3, 6, 7,    // Triangle 2
+
+            // Top face
+            5, 2, 6,    // Triangle 1
+            2, 3, 6,    // Triangle 2
+
+            // Bottom face
+            1, 0, 4,    // Triangle 1
+            7, 0, 4,    // Triangle 2
+
+            // Left face
+            0, 5, 6,    // Triangle 1
+            0, 6, 7,    // Triangle 2
+
+            // Right face
+            1, 2, 4,    // Triangle 1
+            3, 2, 4     // Triangle 2
+        ]
+        m_Entities.append(Entity(Translation: SIMD3<Float>(100, 100, 0.0), Rotation: SIMD3<Float>(0.0, 0.0, 0.0), Scale: SIMD3<Float>(300.0, 300.0, 300.0), Mesh: Mesh(Positions: Positions, Colors: Colors, Indices: Indices)))
+    }
+    
+    func CreateScene() {
+        
+        CreateCube()
+        CreateCube()
+    }
+    
+    func CreateRenderPipelineState() -> MTLRenderPipelineState {
+        
+        let RenderPipelineDescriptor = BuildShaders()
+        let VertexDescriptor = MTLVertexDescriptor()
+        
+        VertexDescriptor.attributes[0].format = .float3
+        VertexDescriptor.attributes[0].offset = 0
+        VertexDescriptor.attributes[0].bufferIndex = 0
+        
+        VertexDescriptor.attributes[1].format = .float4
+        VertexDescriptor.attributes[1].offset = 0
+        VertexDescriptor.attributes[1].bufferIndex = 1
+
+        VertexDescriptor.layouts[0].stride = MemoryLayout<SIMD3<Float>>.stride
+        VertexDescriptor.layouts[1].stride = MemoryLayout<SIMD4<Float>>.stride
+        
+        RenderPipelineDescriptor.vertexDescriptor = VertexDescriptor
+        
+        do {
+            let RenderPipelineState = try m_Device.makeRenderPipelineState(descriptor: RenderPipelineDescriptor)
+            return RenderPipelineState
+        } catch {
+            fatalError("Error creating RenderPipelineState: \(error)")
+        }
     }
 }
