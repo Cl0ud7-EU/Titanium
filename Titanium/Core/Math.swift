@@ -23,7 +23,7 @@ extension simd_float4x4 {
     init(Scale V: SIMD3<Float>, M: simd_float4x4) {
         self.init(SIMD4<Float>(M[0,0] * V.x, M[1,0], M[2,0], M[3,0]),
                   SIMD4<Float>(M[0,1], M[1,1] * V.y, M[2,1], M[3,1]),
-                  SIMD4<Float>(M[0,2], M[1,1], M[2,2] * V.z, M[3,2]),
+                  SIMD4<Float>(M[0,2], M[1,2], M[2,2] * V.z, M[3,2]),
                   SIMD4<Float>(M[0,3], M[1,3], M[2,3], M[3,3]))
     }
     
