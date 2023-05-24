@@ -10,9 +10,9 @@ import Metal
 
 class Draw {
     
-    let m_VertexBuffer: MTLBuffer
-    let m_VertexColorBuffer: MTLBuffer
-    let m_IndexBuffer: MTLBuffer
+    let m_VertexBuffer: MTLBuffer!
+    let m_VertexColorBuffer: MTLBuffer!
+    let m_IndexBuffer: MTLBuffer!
     let m_PrimitiveType: MTLPrimitiveType
     let m_IndexCount: Int
     let m_IndexType: MTLIndexType
@@ -22,15 +22,15 @@ class Draw {
 
         self.m_VertexBuffer = m_Device.makeBuffer(bytes: VertexPositions,
                                                   length: MemoryLayout<SIMD3<Float>>.stride * VertexPositions.count,
-                                                  options: .storageModeShared)!
+                                                  options: .storageModeShared)
         
         self.m_VertexColorBuffer = m_Device.makeBuffer(bytes: VertexColors,
                                                        length: MemoryLayout<SIMD4<Float>>.stride * VertexColors.count,
-                                                       options: .storageModeShared)!
+                                                       options: .storageModeShared)
         
         self.m_IndexBuffer = m_Device.makeBuffer(bytes: Indices,
                                                  length: MemoryLayout<UInt16>.size * Indices.count,
-                                                 options: .storageModeShared)!
+                                                 options: .storageModeShared)
         self.m_PrimitiveType = PrimitiveType
         self.m_IndexCount = IndexCount
         self.m_IndexType = IndexType
