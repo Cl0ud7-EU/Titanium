@@ -67,6 +67,21 @@ extension simd_float4x4 {
                   SIMD4<Float>( 0,  0, ScaleZ, 0),
                   SIMD4<Float>( TransX, TransY, TransZ, 1))
     }
+    
+    init(perspectiveProjectionFoVY fovYRadians: Float,
+         aspectRatio: Float,
+         near: Float,
+         far: Float)
+    {
+        let sy = 1 / tan(fovYRadians * 0.5)
+        let sx = sy / aspectRatio
+        let k: Float = far / (far - near)
+        
+        self.init(SIMD4<Float>(sx, 0,  0,  0),
+                  SIMD4<Float>(0, sy,  0,  0),
+                  SIMD4<Float>(0,  0, k, 1.0),
+                  SIMD4<Float>(0,  0, -near * k,  0))
+    }
 }
 
 func EulerToQuat(Rot: SIMD3<Float>) -> SIMD4<Float> {

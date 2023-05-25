@@ -19,10 +19,6 @@ class Renderer: NSObject, MTKViewDelegate {
     let m_View: MTKView!
 
     private var m_Library: MTLLibrary!
-    private var m_CommandBuffer: MTLCommandBuffer!
-    private var m_VertexBuffer: MTLBuffer!
-    private var m_VertexColorBuffer: MTLBuffer!
-    private var m_IndexBuffer: MTLBuffer!
     private var m_RenderPipelineState: MTLRenderPipelineState!
     
     private var m_FrameSempahore = DispatchSemaphore(value: MaxFramesInFlight)
@@ -33,6 +29,7 @@ class Renderer: NSObject, MTKViewDelegate {
     private let m_ConstantsStride: Int
     private var m_ConstantsBufferOffset: Int
     
+    private let m_MaxDrawableEntities: Int = 1024
     private var m_Entities: [Entity] = []
     private var m_Meshes: [Mesh] = []
     private var m_Draws: [Draw] = []
@@ -49,8 +46,8 @@ class Renderer: NSObject, MTKViewDelegate {
         
         self.m_FrameIndex = 0
         
-        self.m_ConstantsSize = MemoryLayout<simd_float4x4>.size //MemoryLayout<SIMD3<Float>>.size
-        self.m_ConstantsStride = align(m_ConstantsSize, upTo: 256)
+        self.m_ConstantsSize = MemoryLayout<simd_float4x4>.size // MemoryLayout<SIMD3<Float>>.size
+        self.m_ConstantsStride = align(m_ConstantsSize, upTo: 256) // Maybe change it to 64 if the GPU Support it ????
         self.m_ConstantsBufferOffset = 0
         
         super.init()
@@ -62,7 +59,7 @@ class Renderer: NSObject, MTKViewDelegate {
         CreateScene()
         m_RenderPipelineState = CreateRenderPipelineState()
     
-        m_ConstantBuffer = m_Device.makeBuffer(length: m_ConstantsStride * MaxFramesInFlight, options: .storageModeShared)
+        m_ConstantBuffer = m_Device.makeBuffer(length: m_MaxDrawableEntities * m_ConstantsStride * MaxFramesInFlight, options: .storageModeShared)
     }
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -82,9 +79,9 @@ class Renderer: NSObject, MTKViewDelegate {
         
         RenderCommandEncoder.setRenderPipelineState(m_RenderPipelineState)
         
-        for Entity in m_Entities
+        for (Index, Entity) in m_Entities.enumerated()
         {
-            UpdateConstants(Translation: Entity.m_Translation)
+            UpdateConstants(Translation: Entity.m_Translation, Rotation: Entity.m_Rotation, EntityIndex: Index)
             
             RenderCommandEncoder.setVertexBuffer(Entity.m_Mesh.m_Draw.m_VertexBuffer, offset: 0, index: 0)
             RenderCommandEncoder.setVertexBuffer(Entity.m_Mesh.m_Draw.m_VertexColorBuffer, offset: 0, index: 1)
@@ -119,44 +116,56 @@ class Renderer: NSObject, MTKViewDelegate {
         return RenderPipelineDescriptor
     }
     
-    func UpdateConstants(Translation:  SIMD3<Float>) {
+    func UpdateConstants(Translation: SIMD3<Float>, Rotation: SIMD3<Float>, EntityIndex: Int) {
         
-        let Scale = SIMD3<Float>(300.0, 300.0, 300.0)
+        let CameraPosition = SIMD3<Float>(0, 0, 0)
+        
+        let Scale = SIMD3<Float>(1.0, 1.0, 1.0)
         let ScaleMatrix = simd_float4x4(Scale: Scale, M: matrix_identity_float4x4)
         
-        let Translate = Translation//SIMD3<Float>(100, 100, 0.0)
+        let RotationRadians = Rotation * (Float.pi/180)
+        
+        let Rotation = EulerToQuat(Rot: RotationRadians)
+        let RotationMatrix = simd_float4x4(Rotate: Rotation)
+        
+        let Translate = Translation
         let TranslateMatrix = simd_float4x4(Translate: Translate, M: matrix_identity_float4x4)
         
-        let ModelMatrix = TranslateMatrix * ScaleMatrix
+        let ModelMatrix = TranslateMatrix * RotationMatrix * ScaleMatrix
         
         let AspectRatio = Float(m_View.drawableSize.width / m_View.drawableSize.height)
         let CanvasWidth: Float = 1280
         let CanvasHeight = CanvasWidth / AspectRatio
-        let ProjectionMatrix = simd_float4x4(OrthographicProjection: CanvasWidth / 2,
-                                             left: -CanvasWidth / 2,
-                                             top: CanvasHeight / 2,
-                                             bottom: -CanvasHeight / 2,
-                                             near: 0.0,
-                                             far: 1.0)
+//        let ProjectionMatrix = simd_float4x4(OrthographicProjection: CanvasWidth / 2,
+//                                             left: -CanvasWidth / 2,
+//                                             top: CanvasHeight / 2,
+//                                             bottom: -CanvasHeight / 2,
+//                                             near: 0.1,
+//                                             far: 100.0)
+       
+        let ProjectionMatrix = simd_float4x4(perspectiveProjectionFoVY: 45.0 * (Float.pi/180),
+                                             aspectRatio: AspectRatio,
+                                             near: 0.1,
+                                             far: 100.0)
         
-        var TransformMatrix = ProjectionMatrix * ModelMatrix 
+        var TransformMatrix = ProjectionMatrix * ModelMatrix
         
-        m_ConstantsBufferOffset = (m_FrameIndex % MaxFramesInFlight) * m_ConstantsStride
+        m_ConstantsBufferOffset = ((m_FrameIndex % MaxFramesInFlight) * m_MaxDrawableEntities) + m_ConstantsStride * (EntityIndex)
         let Constants = m_ConstantBuffer.contents().advanced(by: m_ConstantsBufferOffset)
         Constants.copyMemory(from: &TransformMatrix, byteCount: m_ConstantsSize)
     }
     
-    func CreateCube() {
+    func CreateCube(Translation: SIMD3<Float>, Rotation: SIMD3<Float>) {
 
         let Positions = [
-            SIMD3<Float>(0.0, 0.0, 0.0),
-            SIMD3<Float>(1.0, 0.0, 0.0),
-            SIMD3<Float>(1.0, 1.0, 0.0),
+            SIMD3<Float>(-1.0, -1.0, -1.0),
+            SIMD3<Float>(1.0, -1.0, -1.0),
+            SIMD3<Float>(1.0, 1.0, -1.0),
             SIMD3<Float>(1.0, 1.0, 1.0),
-            SIMD3<Float>(1.0, 0.0, 1.0),
-            SIMD3<Float>(0.0, 1.0, 0.0),
-            SIMD3<Float>(0.0, 1.0, 1.0),
-            SIMD3<Float>(0.0, 0.0, 1.0)
+            SIMD3<Float>(1.0, -1.0, 1.0),
+            SIMD3<Float>(-1.0, 1.0, -1.0),
+            SIMD3<Float>(-1.0, 1.0, 1.0),
+            SIMD3<Float>(-1.0, -1.0, 1.0)
         ]
         
         let Colors = [
@@ -195,13 +204,13 @@ class Renderer: NSObject, MTKViewDelegate {
             1, 2, 4,    // Triangle 1
             3, 2, 4     // Triangle 2
         ]
-        m_Entities.append(Entity(Translation: SIMD3<Float>(100, 100, 0.0), Rotation: SIMD3<Float>(0.0, 0.0, 0.0), Scale: SIMD3<Float>(300.0, 300.0, 300.0), Mesh: Mesh(Positions: Positions, Colors: Colors, Indices: Indices)))
+        m_Entities.append(Entity(Translation: Translation, Rotation: Rotation, Scale: SIMD3<Float>(1.0, 1.0, 1.0), Mesh: Mesh(Positions: Positions, Colors: Colors, Indices: Indices)))
     }
     
     func CreateScene() {
         
-        CreateCube()
-        CreateCube()
+        CreateCube(Translation: SIMD3<Float>(0.0, 0.0, 19.0), Rotation: SIMD3<Float>(0.0, 90.0, 0.0))
+        CreateCube(Translation: SIMD3<Float>(1.0, 0.0, 8.0), Rotation: SIMD3<Float>(0.0, 20.0, 0.0))
     }
     
     func CreateRenderPipelineState() -> MTLRenderPipelineState {
