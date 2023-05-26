@@ -20,6 +20,7 @@ class Renderer: NSObject, MTKViewDelegate {
 
     private var m_Library: MTLLibrary!
     private var m_RenderPipelineState: MTLRenderPipelineState!
+    private var m_DepthStencilState: MTLDepthStencilState!
     
     private var m_FrameSempahore = DispatchSemaphore(value: MaxFramesInFlight)
     private var m_FrameIndex: Int
@@ -56,6 +57,8 @@ class Renderer: NSObject, MTKViewDelegate {
         m_View.delegate = self
         m_View.clearColor = MTLClearColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1.0)
         
+        m_View.depthStencilPixelFormat = .depth32Float
+        
         CreateScene()
         m_RenderPipelineState = CreateRenderPipelineState()
     
@@ -79,6 +82,10 @@ class Renderer: NSObject, MTKViewDelegate {
         
         RenderCommandEncoder.setRenderPipelineState(m_RenderPipelineState)
         
+        RenderCommandEncoder.setDepthStencilState(m_DepthStencilState)
+        RenderCommandEncoder.setFrontFacing(.clockwise)
+        RenderCommandEncoder.setCullMode(.back)
+        
         for (Index, Entity) in m_Entities.enumerated()
         {
             UpdateConstants(Translation: Entity.m_Translation, Rotation: Entity.m_Rotation, EntityIndex: Index)
@@ -86,6 +93,7 @@ class Renderer: NSObject, MTKViewDelegate {
             RenderCommandEncoder.setVertexBuffer(Entity.m_Mesh.m_Draw.m_VertexBuffer, offset: 0, index: 0)
             RenderCommandEncoder.setVertexBuffer(Entity.m_Mesh.m_Draw.m_VertexColorBuffer, offset: 0, index: 1)
             RenderCommandEncoder.setVertexBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 2)
+            //RenderCommandEncoder.setTriangleFillMode(MTLTriangleFillMode.lines)
             RenderCommandEncoder.drawIndexedPrimitives(type: Entity.m_Mesh.m_Draw.m_PrimitiveType,
                                                        indexCount: Entity.m_Mesh.m_Draw.m_IndexCount,
                                                        indexType: Entity.m_Mesh.m_Draw.m_IndexType,
@@ -113,12 +121,20 @@ class Renderer: NSObject, MTKViewDelegate {
         RenderPipelineDescriptor.fragmentFunction = m_Library.makeFunction(name: "fragment_main")!
         RenderPipelineDescriptor.colorAttachments[0].pixelFormat = m_View.colorPixelFormat
         
+        RenderPipelineDescriptor.depthAttachmentPixelFormat = m_View.depthStencilPixelFormat
+        
+        let DepthStencilDescriptor = MTLDepthStencilDescriptor()
+        DepthStencilDescriptor.depthCompareFunction = .less
+        DepthStencilDescriptor.isDepthWriteEnabled = true
+        m_DepthStencilState = m_Device.makeDepthStencilState(descriptor: DepthStencilDescriptor)!
+        
         return RenderPipelineDescriptor
     }
     
     func UpdateConstants(Translation: SIMD3<Float>, Rotation: SIMD3<Float>, EntityIndex: Int) {
         
         let CameraPosition = SIMD3<Float>(0, 0, 0)
+        let ViewMatrix = simd_float4x4(Translate: -CameraPosition, M: matrix_identity_float4x4)
         
         let Scale = SIMD3<Float>(1.0, 1.0, 1.0)
         let ScaleMatrix = simd_float4x4(Scale: Scale, M: matrix_identity_float4x4)
@@ -148,7 +164,7 @@ class Renderer: NSObject, MTKViewDelegate {
                                              near: 0.1,
                                              far: 100.0)
         
-        var TransformMatrix = ProjectionMatrix * ModelMatrix
+        var TransformMatrix = ProjectionMatrix * ViewMatrix * ModelMatrix
         
         m_ConstantsBufferOffset = ((m_FrameIndex % MaxFramesInFlight) * m_MaxDrawableEntities) + m_ConstantsStride * (EntityIndex)
         let Constants = m_ConstantBuffer.contents().advanced(by: m_ConstantsBufferOffset)
@@ -181,7 +197,7 @@ class Renderer: NSObject, MTKViewDelegate {
         
         let Indices: [UInt16] = [
             // Front face
-            0, 1, 5,    // Triangle 1
+            0, 5, 1,    // Triangle 1
             1, 5, 2,    // Triangle 2
 
             // Back face
@@ -189,28 +205,28 @@ class Renderer: NSObject, MTKViewDelegate {
             3, 6, 7,    // Triangle 2
 
             // Top face
-            5, 2, 6,    // Triangle 1
-            2, 3, 6,    // Triangle 2
+            5, 6, 2,    // Triangle 1
+            2, 6, 3,    // Triangle 2
 
             // Bottom face
-            1, 0, 4,    // Triangle 1
+            1, 4, 0,    // Triangle 1
             7, 0, 4,    // Triangle 2
 
             // Left face
-            0, 5, 6,    // Triangle 1
-            0, 6, 7,    // Triangle 2
+            0, 6, 5,    // Triangle 1
+            0, 7, 6,    // Triangle 2
 
             // Right face
             1, 2, 4,    // Triangle 1
-            3, 2, 4     // Triangle 2
+            3, 4, 2     // Triangle 2
         ]
         m_Entities.append(Entity(Translation: Translation, Rotation: Rotation, Scale: SIMD3<Float>(1.0, 1.0, 1.0), Mesh: Mesh(Positions: Positions, Colors: Colors, Indices: Indices)))
     }
     
     func CreateScene() {
         
-        CreateCube(Translation: SIMD3<Float>(0.0, 0.0, 19.0), Rotation: SIMD3<Float>(0.0, 90.0, 0.0))
-        CreateCube(Translation: SIMD3<Float>(1.0, 0.0, 8.0), Rotation: SIMD3<Float>(0.0, 20.0, 0.0))
+        CreateCube(Translation: SIMD3<Float>(-5.0, 0.0, 10.0), Rotation: SIMD3<Float>(0.0, 0.0, 45.0))
+        CreateCube(Translation: SIMD3<Float>(5.0, 0.0, 10.0), Rotation: SIMD3<Float>(0.0, 275.0, 0.0))
     }
     
     func CreateRenderPipelineState() -> MTLRenderPipelineState {
