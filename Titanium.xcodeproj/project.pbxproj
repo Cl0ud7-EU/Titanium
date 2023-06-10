@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0308B3582A2124FA00CA9148 /* Light.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0308B3572A2124FA00CA9148 /* Light.swift */; };
 		030C4B7729FA826F00E577C7 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4B7629FA826F00E577C7 /* AppDelegate.swift */; };
 		030C4B7929FA826F00E577C7 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4B7829FA826F00E577C7 /* ViewController.swift */; };
 		030C4B7B29FA827200E577C7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 030C4B7A29FA827200E577C7 /* Assets.xcassets */; };
@@ -27,6 +28,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0308B3572A2124FA00CA9148 /* Light.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Light.swift; sourceTree = "<group>"; };
 		030C4B7329FA826F00E577C7 /* Titanium.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Titanium.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		030C4B7629FA826F00E577C7 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		030C4B7829FA826F00E577C7 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -85,7 +87,7 @@
 			children = (
 				03D24FC42A051528007FB4D0 /* Core */,
 				03D24FC32A051508007FB4D0 /* Renderer */,
-				03C269732A0AAB94000A998C /* Resources */,
+				03C269732A0AAB94000A998C /* Utils */,
 				03C269722A0AAB80000A998C /* Platform */,
 				030C4B7A29FA827200E577C7 /* Assets.xcassets */,
 				030C4B7F29FA827200E577C7 /* Titanium.entitlements */,
@@ -102,12 +104,13 @@
 			path = Platform;
 			sourceTree = "<group>";
 		};
-		03C269732A0AAB94000A998C /* Resources */ = {
+		03C269732A0AAB94000A998C /* Utils */ = {
 			isa = PBXGroup;
 			children = (
 				03C269742A0AABBE000A998C /* Mesh.swift */,
+				0308B3572A2124FA00CA9148 /* Light.swift */,
 			);
-			path = Resources;
+			path = Utils;
 			sourceTree = "<group>";
 		};
 		03D24FC22A0514AF007FB4D0 /* Mac */ = {
@@ -250,6 +253,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0308B3582A2124FA00CA9148 /* Light.swift in Sources */,
 				03C269752A0AABBE000A998C /* Mesh.swift in Sources */,
 				030C4BBD29FB02F500E577C7 /* Shader.metal in Sources */,
 				030C4B7929FA826F00E577C7 /* ViewController.swift in Sources */,

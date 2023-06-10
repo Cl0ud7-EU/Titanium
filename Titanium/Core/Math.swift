@@ -11,7 +11,6 @@ import simd
 func align(_ value: Int, upTo alignment: Int) -> Int {
     return ((value + alignment - 1) / alignment) * alignment
 }
-
 extension simd_float4x4 {
     init(Translate V: SIMD3<Float>, M: simd_float4x4) {
         self.init(SIMD4<Float>(M[0,0], M[1,0], M[2,0], M[3,0]),

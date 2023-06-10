@@ -8,7 +8,7 @@
 import Foundation
 import Metal
 
-class Draw {
+struct Draw {
     
     let m_VertexBuffer: MTLBuffer!
     let m_VertexColorBuffer: MTLBuffer!
