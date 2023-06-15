@@ -5,8 +5,8 @@
 //  Created by Cl0ud7.
 //
 
-import Metal
 import MetalKit
+import Metal
 
 #if os(macOS)
 import Cocoa
@@ -47,7 +47,7 @@ class ViewController: UIViewController {
 
         // Do any additional setup after loading the view.
         let Device = MTLCreateSystemDefaultDevice()!
-        GPULabel.text = Device.name + " [Metal]" 
+        //GPULabel.text = Device.name + " [Metal]" 
         m_Renderer = Renderer(device: Device, view: metalView)
         
     }

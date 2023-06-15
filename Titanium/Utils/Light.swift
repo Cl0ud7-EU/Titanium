@@ -7,6 +7,7 @@
 
 import Foundation
 import Metal
+import simd
 
 enum LightType: UInt8 {
     case Directional

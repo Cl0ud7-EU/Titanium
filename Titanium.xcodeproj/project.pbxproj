@@ -14,14 +14,19 @@
 		030C4B7E29FA827200E577C7 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 030C4B7C29FA827200E577C7 /* Main.storyboard */; };
 		030C4BBB29FADADB00E577C7 /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4BBA29FADADB00E577C7 /* Renderer.swift */; };
 		030C4BBD29FB02F500E577C7 /* Shader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030C4BBC29FB02F500E577C7 /* Shader.metal */; };
+		031B5D402A35E6CE00D33ED6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4B7629FA826F00E577C7 /* AppDelegate.swift */; };
+		031B5D412A35E6CE00D33ED6 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4B7829FA826F00E577C7 /* ViewController.swift */; };
+		031B5D422A35E6CE00D33ED6 /* Math.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03D24FC52A0515B2007FB4D0 /* Math.swift */; };
+		031B5D432A35E6CE00D33ED6 /* Entity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034F1E7B2A1A99E300B01E7C /* Entity.swift */; };
+		031B5D442A35E6CE00D33ED6 /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4BBA29FADADB00E577C7 /* Renderer.swift */; };
+		031B5D452A35E6CE00D33ED6 /* Draw.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035C20022A0C1F6200012346 /* Draw.swift */; };
+		031B5D462A35E6CF00D33ED6 /* Shader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030C4BBC29FB02F500E577C7 /* Shader.metal */; };
+		031B5D472A35E6CF00D33ED6 /* Mesh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C269742A0AABBE000A998C /* Mesh.swift */; };
+		031B5D482A35E6CF00D33ED6 /* Light.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0308B3572A2124FA00CA9148 /* Light.swift */; };
 		034F1E7C2A1A99E300B01E7C /* Entity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034F1E7B2A1A99E300B01E7C /* Entity.swift */; };
 		035C20032A0C1F6200012346 /* Draw.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035C20022A0C1F6200012346 /* Draw.swift */; };
 		03C269752A0AABBE000A998C /* Mesh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C269742A0AABBE000A998C /* Mesh.swift */; };
 		03D24FC62A0515B2007FB4D0 /* Math.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03D24FC52A0515B2007FB4D0 /* Math.swift */; };
-		03EFAC4F29FC8A6D00332D01 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4B7629FA826F00E577C7 /* AppDelegate.swift */; };
-		03EFAC5029FC8A6D00332D01 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4B7829FA826F00E577C7 /* ViewController.swift */; };
-		03EFAC5129FC8A6D00332D01 /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030C4BBA29FADADB00E577C7 /* Renderer.swift */; };
-		03EFAC5229FC8A6D00332D01 /* Shader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030C4BBC29FB02F500E577C7 /* Shader.metal */; };
 		03EFAC5329FC8A9700332D01 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 03EEDB6F29FC881F002BA24C /* LaunchScreen.storyboard */; };
 		03EFAC5429FC8A9700332D01 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 03EEDB6C29FC8661002BA24C /* Main.storyboard */; };
 		03EFAC5529FC8A9700332D01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 030C4B7A29FA827200E577C7 /* Assets.xcassets */; };
@@ -37,6 +42,7 @@
 		030C4B7F29FA827200E577C7 /* Titanium.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Titanium.entitlements; sourceTree = "<group>"; };
 		030C4BBA29FADADB00E577C7 /* Renderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renderer.swift; sourceTree = "<group>"; };
 		030C4BBC29FB02F500E577C7 /* Shader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shader.metal; sourceTree = "<group>"; };
+		031B5D492A35E7D300D33ED6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		034F1E7B2A1A99E300B01E7C /* Entity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Entity.swift; sourceTree = "<group>"; };
 		035C20022A0C1F6200012346 /* Draw.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Draw.swift; sourceTree = "<group>"; };
 		03C269742A0AABBE000A998C /* Mesh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mesh.swift; sourceTree = "<group>"; };
@@ -85,6 +91,7 @@
 		030C4B7529FA826F00E577C7 /* Titanium */ = {
 			isa = PBXGroup;
 			children = (
+				031B5D492A35E7D300D33ED6 /* Info.plist */,
 				03D24FC42A051528007FB4D0 /* Core */,
 				03D24FC32A051508007FB4D0 /* Renderer */,
 				03C269732A0AAB94000A998C /* Utils */,
@@ -269,10 +276,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				03EFAC4F29FC8A6D00332D01 /* AppDelegate.swift in Sources */,
-				03EFAC5029FC8A6D00332D01 /* ViewController.swift in Sources */,
-				03EFAC5129FC8A6D00332D01 /* Renderer.swift in Sources */,
-				03EFAC5229FC8A6D00332D01 /* Shader.metal in Sources */,
+				031B5D402A35E6CE00D33ED6 /* AppDelegate.swift in Sources */,
+				031B5D412A35E6CE00D33ED6 /* ViewController.swift in Sources */,
+				031B5D422A35E6CE00D33ED6 /* Math.swift in Sources */,
+				031B5D432A35E6CE00D33ED6 /* Entity.swift in Sources */,
+				031B5D442A35E6CE00D33ED6 /* Renderer.swift in Sources */,
+				031B5D452A35E6CE00D33ED6 /* Draw.swift in Sources */,
+				031B5D462A35E6CF00D33ED6 /* Shader.metal in Sources */,
+				031B5D472A35E6CF00D33ED6 /* Mesh.swift in Sources */,
+				031B5D482A35E6CF00D33ED6 /* Light.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -415,6 +427,8 @@
 				DEVELOPMENT_TEAM = XAA77AEW3J;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Titanium/Info.plist;
+				INFOPLIST_KEY_MetalCaptureEnabled = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
@@ -442,6 +456,8 @@
 				DEVELOPMENT_TEAM = XAA77AEW3J;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Titanium/Info.plist;
+				INFOPLIST_KEY_MetalCaptureEnabled = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
@@ -466,18 +482,21 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = XAA77AEW3J;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Titanium/iOS/Info.plist;
+				INFOPLIST_FILE = Titanium/Platform/iOS/Info.plist;
+				INFOPLIST_KEY_MetalCaptureEnabled = NO;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_OUTPUT_FORMAT = "same-as-input";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				PLIST_FILE_OUTPUT_FORMAT = "same-as-input";
 				PRODUCT_BUNDLE_IDENTIFIER = "Cl0ud7.Titanium-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -496,18 +515,21 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = XAA77AEW3J;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Titanium/iOS/Info.plist;
+				INFOPLIST_FILE = Titanium/Platform/iOS/Info.plist;
+				INFOPLIST_KEY_MetalCaptureEnabled = NO;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_OUTPUT_FORMAT = "same-as-input";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				PLIST_FILE_OUTPUT_FORMAT = "same-as-input";
 				PRODUCT_BUNDLE_IDENTIFIER = "Cl0ud7.Titanium-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

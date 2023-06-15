@@ -29,7 +29,7 @@ struct Draw {
                                                        options: .storageModeShared)
         
         self.m_IndexBuffer = m_Device.makeBuffer(bytes: Indices,
-                                                 length: MemoryLayout<UInt16>.size * Indices.count,
+                                                 length: MemoryLayout<UInt16>.stride * Indices.count,
                                                  options: .storageModeShared)
         self.m_PrimitiveType = PrimitiveType
         self.m_IndexCount = IndexCount
