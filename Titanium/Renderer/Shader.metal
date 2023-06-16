@@ -70,14 +70,21 @@ static float3 calcPointLight(uint LightCount, PointLight light, float3 vertexWor
 {
     float3 normal = normalize(vertexNormal);
     float3 lightDirection = -(light.position - vertexWorldPos);
+    float3 lightDistance = length(lightDirection);
+    lightDirection = normalize(lightDirection);
+    float attenuation = calcSmoothAttenuation(lightDistance, light.radius);
     
     // Calc Diffuse Factor
-    float3 lightDistance = length(lightDirection);
-    float attenuation = calcSmoothAttenuation(lightDistance, light.radius);
     lightDistance = normalize(lightDistance);
-    float diffuseFactor = max(dot(normal, normalize(lightDirection)), 0.0);
+    float diffuseFactor = max(dot(normal, lightDirection), 0.0);
     diffuseFactor *= attenuation;
     float3 result = light.color * light.intensity * diffuseFactor;
+    
+    // Specular
+    float specularStrenght = 1;
+    float3 reflectionDirection = 2 * (normal * lightDirection) * normal - lightDirection;
+    float specularFactor = pow(saturate(dot(-viewPos, reflectionDirection)), specularStrenght);
+    result += light.color * light.intensity * specularFactor * attenuation;
     
     return result;
 }
