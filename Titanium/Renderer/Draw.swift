@@ -20,15 +20,15 @@ struct Draw {
     init(VertexPositions: [SIMD3<Float>], VertexColors: [SIMD4<Float>], Indices: [UInt16],
          PrimitiveType: MTLPrimitiveType, IndexCount: Int, IndexType: MTLIndexType) {
 
-        self.m_VertexBuffer = m_Device.makeBuffer(bytes: VertexPositions,
+        self.m_VertexBuffer = g_Device.makeBuffer(bytes: VertexPositions,
                                                   length: MemoryLayout<SIMD3<Float>>.stride * VertexPositions.count,
                                                   options: .storageModeShared)
         
-        self.m_VertexColorBuffer = m_Device.makeBuffer(bytes: VertexColors,
+        self.m_VertexColorBuffer = g_Device.makeBuffer(bytes: VertexColors,
                                                        length: MemoryLayout<SIMD4<Float>>.stride * VertexColors.count,
                                                        options: .storageModeShared)
         
-        self.m_IndexBuffer = m_Device.makeBuffer(bytes: Indices,
+        self.m_IndexBuffer = g_Device.makeBuffer(bytes: Indices,
                                                  length: MemoryLayout<UInt16>.stride * Indices.count,
                                                  options: .storageModeShared)
         self.m_PrimitiveType = PrimitiveType

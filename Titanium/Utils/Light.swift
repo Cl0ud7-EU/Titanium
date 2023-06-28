@@ -14,11 +14,14 @@ enum LightType: UInt8 {
 }
 
 struct DirectionalLight {
-    var m_Direction = SIMD3<Float>(0, 0, 0) // 16
-    var m_Color = SIMD3<Float>(1, 1, 1) // 16
-    var m_Intensity: Float = 1.0 // 4
+    var m_Direction: SIMD3<Float>
+    var m_Color: SIMD3<Float>
+    var m_Intensity: Float
     
-    init(Direction: SIMD3<Float>, Color: SIMD3<Float>, Intensity: Float) {
+    init(Direction: SIMD3<Float> = SIMD3<Float>(0, 0, 0), //16
+         Color: SIMD3<Float> = SIMD3<Float>(1, 1, 1), //16
+         Intensity: Float = 1.0) //4
+    {
         self.m_Direction = Direction
         self.m_Color = Color
         self.m_Intensity = Intensity
@@ -26,12 +29,16 @@ struct DirectionalLight {
 }
 
 struct PointLight {
-    var m_Position = SIMD3<Float>(0, 0, 0)
-    var m_Color = SIMD3<Float>(1, 1, 1)
-    var m_Intensity: Float = 1.0
-    var m_Radius: Float = 1.0
+    var m_Position: SIMD3<Float>
+    var m_Color: SIMD3<Float>
+    var m_Intensity: Float
+    var m_Radius: Float
     
-    init(Position: SIMD3<Float>, Color: SIMD3<Float>, Intensity: Float, Radius: Float) {
+    init(Position: SIMD3<Float> = SIMD3<Float>(0, 0, 0),
+         Color: SIMD3<Float> = SIMD3<Float>(1, 1, 1),
+         Intensity: Float = 1.0,
+         Radius: Float = 1.0)
+    {
         self.m_Position = Position
         self.m_Color = Color
         self.m_Intensity = Intensity

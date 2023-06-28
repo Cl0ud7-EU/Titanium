@@ -10,8 +10,8 @@ using namespace metal;
 
 struct VertexData {
     float3 position [[attribute(0)]];
-    float4 color [[attribute(1)]];
-    float3 normal [[attribute(2)]];
+    float3 normal [[attribute(1)]];
+    float2 textCoords [[attribute(2)]];
 };
 
 struct VertexOut {
@@ -29,6 +29,7 @@ struct EntityConstants {
 
 struct FrameConstants {
     float4x4 projectionMatrix;
+    float4x4 viewMatrix;
     uint lightCount;
 };
 
@@ -48,12 +49,9 @@ struct PointLight {
 static float calcSmoothAttenuation(float3 lightDirection, float radius)
 {
     float squareRadius = dot(lightDirection, lightDirection);
-    float2 attenuationConst = float2(radius*radius, radius);
+    float2 attenuationConst = float2(1 / (radius*radius), 2 / radius);
     
-    if (squareRadius > attenuationConst.x) {
-        return 0;
-    }
-    float result = clamp((squareRadius / attenuationConst.x) * ((2 * (sqrt(squareRadius)) / attenuationConst.y) - 3.0) + 1.0, 0.0, 1.0);
+    float result = saturate(squareRadius * attenuationConst.x * (sqrt(squareRadius) * attenuationConst.y - 3.0) + 1.0);
     return result;
 }
 
@@ -66,11 +64,12 @@ static float3 calcDirectionalLight(Light light)
     return result;
 }
 
-static float3 calcPointLight(uint LightCount, PointLight light, float3 vertexWorldPos, float3 vertexNormal, float3 viewPos)
+static float3 calcPointLight(uint LightCount, PointLight light, float3 vertexWorldPos, float3 vertexNormal, float3 viewPos, float4x4 viewMatrix)
 {
+    float3 lightPos = (viewMatrix * float4(light.position, 1)).xyz;
     float3 normal = normalize(vertexNormal);
-    float3 lightDirection = -(light.position - vertexWorldPos);
-    float3 lightDistance = length(lightDirection);
+    float3 lightDirection = (lightPos - vertexWorldPos);
+    float3 lightDistance = lightDirection;//length(lightDirection);
     lightDirection = normalize(lightDirection);
     float attenuation = calcSmoothAttenuation(lightDistance, light.radius);
     
@@ -81,10 +80,10 @@ static float3 calcPointLight(uint LightCount, PointLight light, float3 vertexWor
     float3 result = light.color * light.intensity * diffuseFactor;
     
     // Specular
-    float specularStrenght = 1;
-    float3 reflectionDirection = 2 * (normal * lightDirection) * normal - lightDirection;
-    float specularFactor = pow(saturate(dot(-viewPos, reflectionDirection)), specularStrenght);
-    result += light.color * light.intensity * specularFactor * attenuation;
+//    float specularStrenght = 0.5;
+//    float3 reflectionDirection = 2 * (normal * lightDirection) * normal - lightDirection;
+//    float specularFactor = pow(saturate(dot(-viewPos, reflectionDirection)), specularStrenght);
+//    result += light.color * light.intensity * specularFactor * attenuation;
     
     return result;
 }
@@ -94,11 +93,13 @@ vertex VertexOut vertex_main(VertexData in [[stage_in]],
                              constant EntityConstants &entityConst [[buffer(4)]])
 {
     VertexOut output;
-    output.worldPosition = entityConst.modelViewMatrix * float4(in.position, 1.0);
+    output.worldPosition = entityConst.modelMatrix * float4(in.position, 1.0);
     output.position = frame.projectionMatrix * (entityConst.modelViewMatrix * float4(in.position, 1.0));
     output.viewPosition = entityConst.modelViewMatrix * float4(in.position, 1.0);
-    output.color = in.color;
+    //output.color = in.color;
+    output.color = float4(0.0,1.0,0.0,1.0);
     output.viewNormal = entityConst.modelViewMatrix * float4(in.normal, 0.0);
+
     return output;
 }
 
@@ -107,13 +108,12 @@ fragment float4 fragment_main(VertexOut in [[stage_in]],
                               constant PointLight *lights [[buffer(4)]],
                               constant EntityConstants &entityConst [[buffer(3)]])
 {
-    float3 viewPos = normalize(float3(0) - in.viewPosition.xyz);
+    float3 EyeDirectionViewSpace = normalize(float3(0) - in.viewPosition.xyz);
     
-    //float3 litColor = calcDirectionalLight(lights[0]);
     float3 lighting = 0;
 
     for (uint i = 0; i < frame.lightCount; ++i) {
-        lighting += calcPointLight(1, lights[i], in.worldPosition.xyz, in.viewNormal.xyz, viewPos);
+        lighting += calcPointLight(1, lights[i], in.viewPosition.xyz, in.viewNormal.xyz, EyeDirectionViewSpace, frame.viewMatrix);
     }
     
     return float4(lighting * in.color.rgb, 1);

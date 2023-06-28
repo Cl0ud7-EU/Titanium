@@ -12,7 +12,7 @@ import simd
 
 let MaxFramesInFlight = 3;
 
-var m_Device: MTLDevice!
+var g_Device: MTLDevice!
 let MinBufferAlignment = 256
 
 struct EntityConstants {
@@ -22,6 +22,7 @@ struct EntityConstants {
 
 struct FrameConstants {
     var m_ProjectionMatrix: simd_float4x4
+    var m_ViewMatrix: simd_float4x4
     var m_LightCount: UInt32
 }
 
@@ -37,6 +38,8 @@ class Renderer: NSObject, MTKViewDelegate {
     private var m_FrameSempahore = DispatchSemaphore(value: MaxFramesInFlight)
     private var m_FrameIndex: Int
     
+    private var m_Scene: Scene
+    
     // FrameConstants
     private var m_ConstantBuffer: MTLBuffer!
     private let m_ConstantsSize: Int
@@ -51,13 +54,10 @@ class Renderer: NSObject, MTKViewDelegate {
     
     // Meshes
     private let m_MaxDrawableEntities: Int = 1024
-    private var m_Entities: [Entity] = []
-    private var m_Meshes: [Mesh] = []
     
     private var m_Draws: [Draw] = []
     
     // Lights
-    private var m_Lights: [PointLight] = []
     private let m_MaxLights: Int = 32
     private var m_LightBuffer: MTLBuffer!
     private let m_LightSize: Int
@@ -69,14 +69,17 @@ class Renderer: NSObject, MTKViewDelegate {
     init(device: MTLDevice, view: MTKView ) {
         
         
-        // perform some initialization here
-        m_Device = device
+        // Perform some initialization here
+        g_Device = device
         self.m_View = view
-        self.m_Library = m_Device.makeDefaultLibrary()
-        self.m_CommandQueue = m_Device.makeCommandQueue()!
-        print("Graphics Device name: \(m_Device.name)")
+        self.m_Library = g_Device.makeDefaultLibrary()
+        self.m_CommandQueue = g_Device.makeCommandQueue()!
+        print("Graphics Device name: \(g_Device.name)")
         
         self.m_FrameIndex = 0
+        
+        m_Scene = Scene()
+        m_Scene.LoadScene()
         
         // FrameConstants
         self.m_ConstantsSize = MemoryLayout<FrameConstants>.stride // MemoryLayout<SIMD3<Float>>.size
@@ -94,21 +97,22 @@ class Renderer: NSObject, MTKViewDelegate {
         self.m_LightBufferOffset = 0
         
         super.init()
-
+        
         m_View.device = device
         m_View.delegate = self
         m_View.clearColor = MTLClearColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1.0)
         
         m_View.depthStencilPixelFormat = .depth32Float
         
-        m_LightBuffer = m_Device.makeBuffer(length: m_MaxLights * m_LightBufferStride * MaxFramesInFlight, options: .storageModeShared)
-        CreateScene()
+        m_LightBuffer = g_Device.makeBuffer(length: m_MaxLights * m_LightBufferStride * MaxFramesInFlight, options: .storageModeShared)
+        
         m_RenderPipelineState = CreateRenderPipelineState()
     
-        m_ConstantBuffer = m_Device.makeBuffer(length: m_ConstantsStride * MaxFramesInFlight, options: .storageModeShared)
+        m_ConstantBuffer = g_Device.makeBuffer(length: m_ConstantsStride * MaxFramesInFlight, options: .storageModeShared)
         
-        m_EntityConstBuffer = m_Device.makeBuffer(length: m_EntityConstsStride * MaxFramesInFlight * m_MaxDrawableEntities, options: .storageModeShared)
+        m_EntityConstBuffer = g_Device.makeBuffer(length: m_EntityConstsStride * MaxFramesInFlight * m_MaxDrawableEntities, options: .storageModeShared)
         
+        UpdateLightBuffer()
     }
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -132,16 +136,19 @@ class Renderer: NSObject, MTKViewDelegate {
         RenderCommandEncoder.setFrontFacing(.clockwise)
         RenderCommandEncoder.setCullMode(.back)
         
-        UpdateConstants()
+        UpdateFrameConstants()
         
         RenderCommandEncoder.setFragmentBuffer(m_LightBuffer, offset: m_LightBufferOffset, index: 4)
         
-        for (Index, Entity) in m_Entities.enumerated() {
+        for (Index, Entity) in m_Scene.m_Entities.enumerated() {
+            
+            let mesh = Entity.m_Mesh
             
             UpdateEntityConstants(Translation: Entity.m_Translation, Rotation: Entity.m_Rotation, Scale: Entity.m_Scale, EntityIndex: Index)
-            RenderCommandEncoder.setVertexBuffer(Entity.m_Mesh.m_Draw.m_VertexBuffer, offset: 0, index: 0)
-            RenderCommandEncoder.setVertexBuffer(Entity.m_Mesh.m_Draw.m_VertexColorBuffer, offset: 0, index: 1)
-            RenderCommandEncoder.setVertexBuffer(Entity.m_Mesh.m_NormalsBuffer, offset: 0, index: 2)
+            
+            for (MeshIndex, MeshBuffer) in mesh.m_MTKMesh.vertexBuffers.enumerated() {
+                RenderCommandEncoder.setVertexBuffer(MeshBuffer.buffer, offset: MeshBuffer.offset, index: MeshIndex)
+            }
             
             RenderCommandEncoder.setVertexBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 3)
             RenderCommandEncoder.setVertexBuffer(m_EntityConstBuffer, offset: m_EntityConstsBufferOffset, index: 4)
@@ -152,10 +159,15 @@ class Renderer: NSObject, MTKViewDelegate {
         
             
             //RenderCommandEncoder.setTriangleFillMode(MTLTriangleFillMode.lines)
-            RenderCommandEncoder.drawIndexedPrimitives(type: Entity.m_Mesh.m_Draw.m_PrimitiveType,
-                                                       indexCount: Entity.m_Mesh.m_Draw.m_IndexCount,
-                                                       indexType: Entity.m_Mesh.m_Draw.m_IndexType,
-                                                       indexBuffer: Entity.m_Mesh.m_Draw.m_IndexBuffer, indexBufferOffset: 0)
+            
+            for SubMesh in mesh.m_MTKMesh.submeshes {
+                let indexBuffer = SubMesh.indexBuffer
+                RenderCommandEncoder.drawIndexedPrimitives(type: SubMesh.primitiveType,
+                                                           indexCount: SubMesh.indexCount,
+                                                           indexType: SubMesh.indexType,
+                                                           indexBuffer: indexBuffer.buffer,
+                                                           indexBufferOffset: indexBuffer.offset)
+            }
         }
         
         
@@ -185,7 +197,7 @@ class Renderer: NSObject, MTKViewDelegate {
         let DepthStencilDescriptor = MTLDepthStencilDescriptor()
         DepthStencilDescriptor.depthCompareFunction = .less
         DepthStencilDescriptor.isDepthWriteEnabled = true
-        m_DepthStencilState = m_Device.makeDepthStencilState(descriptor: DepthStencilDescriptor)!
+        m_DepthStencilState = g_Device.makeDepthStencilState(descriptor: DepthStencilDescriptor)!
         
         return RenderPipelineDescriptor
     }
@@ -217,7 +229,7 @@ class Renderer: NSObject, MTKViewDelegate {
         BufferData.copyMemory(from: &Constants, byteCount: m_EntityConstsSize)
     }
     
-    func UpdateConstants() {
+    func UpdateFrameConstants() {
         
         let AspectRatio = Float(m_View.drawableSize.width / m_View.drawableSize.height)
 //        let CanvasWidth: Float = 1280
@@ -232,149 +244,23 @@ class Renderer: NSObject, MTKViewDelegate {
         let ProjectionMatrix = simd_float4x4(perspectiveProjectionFoVY: 45.0 * (Float.pi/180),
                                              aspectRatio: AspectRatio,
                                              near: 0.1,
-                                             far: 100.0)
+                                             far: 1000.0)
         
-        var Constants = FrameConstants(m_ProjectionMatrix: ProjectionMatrix, m_LightCount: UInt32(m_Lights.count))
+        // ViewMatrix
+        let CameraPosition = SIMD3<Float>(0, 0, 0)
+        let ViewMatrix = simd_float4x4(Translate: -CameraPosition, M: matrix_identity_float4x4)
+        
+        var Constants = FrameConstants(m_ProjectionMatrix: ProjectionMatrix, m_ViewMatrix: ViewMatrix, m_LightCount: UInt32(m_Scene.m_Lights.count))
         
         m_ConstantsBufferOffset = (m_FrameIndex % MaxFramesInFlight) * m_ConstantsStride
         let BufferData = m_ConstantBuffer.contents().advanced(by: m_ConstantsBufferOffset)
         BufferData.copyMemory(from: &Constants, byteCount: m_ConstantsSize)
     }
     
-//    func UpdateLightConstants(Light: inout DirectionalLight, LightIndex: Int) {
-//        m_LightBufferOffset = ((m_FrameIndex % MaxFramesInFlight) * m_MaxLights) + m_LightBufferStride * (LightIndex)
-//        let BufferData = m_LightBuffer.contents().advanced(by: m_LightBufferOffset)
-//        BufferData.copyMemory(from: &Light , byteCount: m_LightSize)
-//    }
-    
-    func CreateCube(Translation: SIMD3<Float>, Rotation: SIMD3<Float>, Scale: SIMD3<Float>) {
-
-        let Positions = [
-            SIMD3<Float>(-1.0, -1.0, -1.0),
-            SIMD3<Float>(1.0, -1.0, -1.0),
-            SIMD3<Float>(1.0, 1.0, -1.0),
-            SIMD3<Float>(1.0, 1.0, 1.0),
-            SIMD3<Float>(1.0, -1.0, 1.0),
-            SIMD3<Float>(-1.0, 1.0, -1.0),
-            SIMD3<Float>(-1.0, 1.0, 1.0),
-            SIMD3<Float>(-1.0, -1.0, 1.0)
-        ]
+    func UpdateLightBuffer() {
         
-        let Colors = [
-            SIMD4<Float>(1.0, 0.0, 0.0, 1.0),
-            SIMD4<Float>(0.0, 1.0, 0.0, 1.0),
-            SIMD4<Float>(0.0, 0.0, 1.0, 1.0),
-            SIMD4<Float>(1.0, 0.0, 1.0, 1.0),
-            SIMD4<Float>(1.0, 0.0, 0.0, 1.0),
-            SIMD4<Float>(0.0, 1.0, 0.0, 1.0),
-            SIMD4<Float>(0.0, 0.0, 1.0, 1.0),
-            SIMD4<Float>(1.0, 0.0, 1.0, 1.0)
-        ]
-        
-        let Indices: [UInt16] = [
-            // Front face
-            0, 16, 3,    // Triangle 1
-            3, 16, 6,    // Triangle 2
-
-            // Back face
-            12, 11, 21,    // Triangle 1
-            11, 18, 21,    // Triangle 2
-
-            // Top face
-            15, 19, 7,    // Triangle 1
-            7, 19, 10,    // Triangle 2
-
-            // Bottom face
-            4, 13, 1,    // Triangle 1
-            23, 1, 13,    // Triangle 2
-
-            // Left face
-            2, 20, 17,    // Triangle 1
-            2, 22, 20,    // Triangle 2
-
-            // Right face
-            5, 8, 14,    // Triangle 1
-            9, 14, 8     // Triangle 2
-        ]
-        
-        var vertices: [Vertex] = []
-        var normal = SIMD3<Float>(0,0,0)
-        // Create Verts
-        for i in 0...7
+        for (Index, Light) in m_Scene.m_Lights.enumerated()
         {
-            for e in 0...2
-            {
-                vertices.append(Vertex(m_Position: Positions[i], m_Color: Colors[i], m_Normal: normal))
-            }
-        }
-        
-        // Calculate normal per vertex
-        for i in stride(from: 0, to: Indices.count-1, by: 3*2)
-        {
-            var vertexCalculated: [UInt16] = []
-            let vectorA = vertices[Int(Indices[i+1])].m_Position - vertices[Int(Indices[i])].m_Position
-            let vectorB = vertices[Int(Indices[i+2])].m_Position - vertices[Int(Indices[i])].m_Position
-//
-            let normal = normalize(simd_cross(vectorB, vectorA))
-            for index in 0...5
-            {
-                if (!vertexCalculated.contains(Indices[index+i]))
-                {
-                    vertices[Int(Indices[index+i])].m_Normal = normal
-                    vertexCalculated.append(Indices[index+i])
-                }
-            }
-        }
-        
-        var PosArray: [SIMD3<Float>] = []
-        var ColorArray: [SIMD4<Float>] = []
-        var NormalArray: [SIMD3<Float>] = []
-//
-        for vert in vertices
-        {
-            PosArray.append(vert.m_Position)
-            ColorArray.append(vert.m_Color)
-            NormalArray.append(vert.m_Normal)
-            print(vert.m_Normal)
-        }
-        print("finish")
-        m_Entities.append(Entity(Translation: Translation, Rotation: Rotation, Scale: Scale, Mesh: Mesh(Positions: PosArray, Colors: ColorArray, Indices: Indices, Normals: NormalArray)))
-    }
-    
-    func CreateLight(Intensity: Float, Direction: SIMD3<Float>, Color: SIMD3<Float>) {
-        //m_Lights.append(DirectionalLight(Direction: Direction, Color: Color, Intensity: Intensity))
-    }
-    func CreatePointLight(Position: SIMD3<Float>, Color: SIMD3<Float>, Intensity: Float, Radius: Float) {
-        m_Lights.append(PointLight(Position: Position, Color: Color, Intensity: Intensity, Radius: Radius))
-    }
-    
-    func CreateScene() {
-        
-        CreateCube(Translation: SIMD3<Float>(-5.0, 0.0, 10.0), Rotation: SIMD3<Float>(0.0, 90.0, 90.0), Scale: SIMD3<Float>(1.0, 1.0, 1.0))
-        CreateCube(Translation: SIMD3<Float>(5.0, 0.0, 10.0), Rotation: SIMD3<Float>(45.0, 0.0, 45.0), Scale: SIMD3<Float>(1.0, 1.0, 1.0))
-        CreateCube(Translation: SIMD3<Float>(0.0, 0.0, 10.0), Rotation: SIMD3<Float>(45.0, 290.0, 0.0), Scale: SIMD3<Float>(1.0, 1.0, 1.0))
-        
-        // Floor and Walls
-        CreateCube(Translation: SIMD3<Float>(0.0, -3.0, 10.0), Rotation: SIMD3<Float>(0.0, 0.0, 0.0), Scale: SIMD3<Float>(20.0, 1.0, 20.0))
-        CreateCube(Translation: SIMD3<Float>(0.0, -3.0, 30.0), Rotation: SIMD3<Float>(90.0, 0.0, 0.0), Scale: SIMD3<Float>(20.0, 1.0, 20.0))
-        // Right
-        CreateCube(Translation: SIMD3<Float>(20.0, -3.0, 10.0), Rotation: SIMD3<Float>(90.0, 90.0, 0.0), Scale: SIMD3<Float>(20.0, 1.0, 20.0))
-        //Left
-        CreateCube(Translation: SIMD3<Float>(-20.0, -3.0, 10.0), Rotation: SIMD3<Float>(90.0, 90.0, 0.0), Scale: SIMD3<Float>(20.0, 1.0, 20.0))
-        
-        //CreateLight(Intensity: 0.4, Direction: SIMD3<Float>(0.0, -1.0, 0.0), Color: SIMD3<Float>(0.4, 0.2, 0.3))
-        
-        CreatePointLight(Position: SIMD3<Float>(2.0, 0.0, 7.0), Color: SIMD3<Float>(1.0, 1.0, 1.0), Intensity: 1.0, Radius: 20.5)
-        //CreatePointLight(Position: SIMD3<Float>(0.0, 0.0, 20.0), Color: SIMD3<Float>(1.0, 1.0, 1.0), Intensity: 1.0, Radius: 10.5)
-        
-        
-        for (Index, Light) in m_Lights.enumerated()
-        {
-//            let LightsBufferOffset = ((m_FrameIndex % MaxFramesInFlight) * m_MaxLights) + m_LightBufferStride * Index
-//            let LightsBufferPointer = m_LightBuffer.contents().advanced(by: LightsBufferOffset).assumingMemoryBound(to: DirectionalLight.self)
-//            LightsBufferPointer[Index] = DirectionalLight(Direction: Light.m_Direction,
-//                                                          Color: Light.m_Color,
-//                                                          Intensity: Light.m_Intensity)
             
             let LightsBufferOffset = ((m_FrameIndex % MaxFramesInFlight) * m_MaxLights) + m_LightBufferStride * Index
             let LightsBufferPointer = m_LightBuffer.contents().advanced(by: LightsBufferOffset).assumingMemoryBound(to: PointLight.self)
@@ -382,48 +268,17 @@ class Renderer: NSObject, MTKViewDelegate {
                                                     Color: Light.m_Color,
                                                     Intensity: Light.m_Intensity,
                                                     Radius: Light.m_Radius)
-            
-//            self.m_LightBuffer = m_Device.makeBuffer(bytes: Light,
-//                                                     length: MemoryLayout<UInt16>.size,
-//                                                     options: .storageModeShared)
         }
-    }
-    
-    func allocateConstantStorage(size: Int, alignment: Int) -> Int {
-            let effectiveAlignment = lcm(alignment, MinBufferAlignment)
-            var allocationOffset = align(0, upTo: effectiveAlignment)
-            if (allocationOffset + size >= m_MaxLights) {
-                allocationOffset = 0
-            }
-            currentConstantBufferOffset = allocationOffset + size
-            return allocationOffset
     }
     
     func CreateRenderPipelineState() -> MTLRenderPipelineState {
         
         let RenderPipelineDescriptor = BuildShaders()
-        let VertexDescriptor = MTLVertexDescriptor()
         
-        VertexDescriptor.attributes[0].format = .float3
-        VertexDescriptor.attributes[0].offset = 0
-        VertexDescriptor.attributes[0].bufferIndex = 0
-        
-        VertexDescriptor.attributes[1].format = .float4
-        VertexDescriptor.attributes[1].offset = 0
-        VertexDescriptor.attributes[1].bufferIndex = 1
-        
-        VertexDescriptor.attributes[2].format = .float3
-        VertexDescriptor.attributes[2].offset = 0
-        VertexDescriptor.attributes[2].bufferIndex = 2
-
-        VertexDescriptor.layouts[0].stride = MemoryLayout<SIMD3<Float>>.stride
-        VertexDescriptor.layouts[1].stride = MemoryLayout<SIMD4<Float>>.stride
-        VertexDescriptor.layouts[2].stride = MemoryLayout<SIMD3<Float>>.stride
-        
-        RenderPipelineDescriptor.vertexDescriptor = VertexDescriptor
+        RenderPipelineDescriptor.vertexDescriptor = m_Scene.m_AssetLoader.vertexDescriptor
         
         do {
-            let RenderPipelineState = try m_Device.makeRenderPipelineState(descriptor: RenderPipelineDescriptor)
+            let RenderPipelineState = try g_Device.makeRenderPipelineState(descriptor: RenderPipelineDescriptor)
             return RenderPipelineState
         } catch {
             fatalError("Error creating RenderPipelineState: \(error)")
