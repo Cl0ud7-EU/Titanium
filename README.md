@@ -6,4 +6,4 @@
 
 Metal Renderer with Swift.
 
-Project for learning the Metal API and use this knowledge to implement a MetalCPP renderer in a Game Engine.
+Project to learn the Metal API and use this knowledge to implement a MetalCPP renderer in a Game Engine.
