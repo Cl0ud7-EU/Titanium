@@ -18,6 +18,7 @@ struct VertexOut {
     float4 position [[position]];
     float4 worldPosition;
     float4 viewPosition;
+    float2 textCoords;
     float4 color;
     float4 viewNormal;
 };
@@ -79,11 +80,11 @@ static float3 calcPointLight(uint LightCount, PointLight light, float3 vertexWor
     diffuseFactor *= attenuation;
     float3 result = light.color * light.intensity * diffuseFactor;
     
-    // Specular
-//    float specularStrenght = 0.5;
-//    float3 reflectionDirection = 2 * (normal * lightDirection) * normal - lightDirection;
-//    float specularFactor = pow(saturate(dot(-viewPos, reflectionDirection)), specularStrenght);
-//    result += light.color * light.intensity * specularFactor * attenuation;
+    //Specular
+    float specularStrenght = 3;
+    float3 reflectionDirection = 2 * (normal * lightDirection) * normal - lightDirection;
+    float specularFactor = pow(saturate(dot(viewPos, reflectionDirection)), specularStrenght);
+    result += light.color * light.intensity * specularFactor * attenuation;
     
     return result;
 }
@@ -98,6 +99,7 @@ vertex VertexOut vertex_main(VertexData in [[stage_in]],
     output.viewPosition = entityConst.modelViewMatrix * float4(in.position, 1.0);
     //output.color = in.color;
     output.color = float4(0.0,1.0,0.0,1.0);
+    output.textCoords = in.textCoords;
     output.viewNormal = entityConst.modelViewMatrix * float4(in.normal, 0.0);
 
     return output;
@@ -106,7 +108,9 @@ vertex VertexOut vertex_main(VertexData in [[stage_in]],
 fragment float4 fragment_main(VertexOut in [[stage_in]],
                               constant FrameConstants &frame [[buffer(2)]],
                               constant PointLight *lights [[buffer(4)]],
-                              constant EntityConstants &entityConst [[buffer(3)]])
+                              constant EntityConstants &entityConst [[buffer(3)]],
+                              texture2d<float, access::sample> textureMap [[texture(0)]],
+                              sampler textureSampler [[sampler(0)]])
 {
     float3 EyeDirectionViewSpace = normalize(float3(0) - in.viewPosition.xyz);
     
@@ -116,5 +120,6 @@ fragment float4 fragment_main(VertexOut in [[stage_in]],
         lighting += calcPointLight(1, lights[i], in.viewPosition.xyz, in.viewNormal.xyz, EyeDirectionViewSpace, frame.viewMatrix);
     }
     
-    return float4(lighting * in.color.rgb, 1);
+    //return float4(lighting * in.color.rgb, 1);
+    return float4(lighting * textureMap.sample(textureSampler, in.textCoords).rgb, 1);
 }

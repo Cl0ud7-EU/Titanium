@@ -12,7 +12,7 @@ import MetalKit
 class AssetLoader {
     
     var vertexDescriptor: MTLVertexDescriptor!
-    func LoadAsset(Path: String, Extension: String = "obj") -> MTKMesh
+    func LoadAsset(Path: String, Extension: String = "obj") -> Mesh
     {
         let allocator = MTKMeshBufferAllocator(device: g_Device)
         
@@ -60,6 +60,10 @@ class AssetLoader {
         }
         let mesh = try! MTKMesh(mesh: mdlMesh, device: g_Device)
         
-        return mesh;
+   
+        guard let unwrappedTexture = texture else {
+            return Mesh(MTKMesh: mesh)
+        }
+        return Mesh(MTKMesh: mesh, Texture: unwrappedTexture)
     }
 }

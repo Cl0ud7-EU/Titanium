@@ -21,4 +21,9 @@ struct Mesh {
     init(MTKMesh: MTKMesh) {
         self.m_MTKMesh = MTKMesh
     }
+    
+    init(MTKMesh: MTKMesh, Texture: MTLTexture) {
+        self.m_MTKMesh = MTKMesh
+        self.m_Texture = Texture
+    }
 }

@@ -34,6 +34,7 @@ class Renderer: NSObject, MTKViewDelegate {
     private var m_Library: MTLLibrary!
     private var m_RenderPipelineState: MTLRenderPipelineState!
     private var m_DepthStencilState: MTLDepthStencilState!
+    private var m_SamplerState: MTLSamplerState!
     
     private var m_FrameSempahore = DispatchSemaphore(value: MaxFramesInFlight)
     private var m_FrameIndex: Int
@@ -104,11 +105,12 @@ class Renderer: NSObject, MTKViewDelegate {
         
         m_View.depthStencilPixelFormat = .depth32Float
         
-        m_LightBuffer = g_Device.makeBuffer(length: m_MaxLights * m_LightBufferStride * MaxFramesInFlight, options: .storageModeShared)
-        
         m_RenderPipelineState = CreateRenderPipelineState()
+        m_SamplerState = CreateSamplerState()
     
         m_ConstantBuffer = g_Device.makeBuffer(length: m_ConstantsStride * MaxFramesInFlight, options: .storageModeShared)
+        
+        m_LightBuffer = g_Device.makeBuffer(length: m_MaxLights * m_LightBufferStride * MaxFramesInFlight, options: .storageModeShared)
         
         m_EntityConstBuffer = g_Device.makeBuffer(length: m_EntityConstsStride * MaxFramesInFlight * m_MaxDrawableEntities, options: .storageModeShared)
         
@@ -143,6 +145,7 @@ class Renderer: NSObject, MTKViewDelegate {
         for (Index, Entity) in m_Scene.m_Entities.enumerated() {
             
             let mesh = Entity.m_Mesh
+            //guard let mesh = Entity.m_Mesh else { continue }
             
             UpdateEntityConstants(Translation: Entity.m_Translation, Rotation: Entity.m_Rotation, Scale: Entity.m_Scale, EntityIndex: Index)
             
@@ -156,6 +159,8 @@ class Renderer: NSObject, MTKViewDelegate {
             
             RenderCommandEncoder.setFragmentBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 2)
             RenderCommandEncoder.setFragmentBuffer(m_EntityConstBuffer, offset: m_EntityConstsBufferOffset, index: 3)
+            RenderCommandEncoder.setFragmentTexture(Entity.m_Mesh.m_Texture, index: 0)
+            RenderCommandEncoder.setFragmentSamplerState(m_SamplerState, index: 0)
         
             
             //RenderCommandEncoder.setTriangleFillMode(MTLTriangleFillMode.lines)
@@ -224,7 +229,7 @@ class Renderer: NSObject, MTKViewDelegate {
         let ModelViewMatrix = ViewMatrix * ModelMatrix
         var Constants = EntityConstants(m_ModelMatrix: ModelMatrix, m_ModelViewMatrix: ModelViewMatrix)
         
-        m_EntityConstsBufferOffset = ((m_FrameIndex % MaxFramesInFlight) * m_MaxDrawableEntities) + m_EntityConstsStride * (EntityIndex)
+        m_EntityConstsBufferOffset = ((m_FrameIndex % MaxFramesInFlight) * m_MaxDrawableEntities) + m_EntityConstsStride * EntityIndex
         let BufferData = m_EntityConstBuffer.contents().advanced(by: m_EntityConstsBufferOffset)
         BufferData.copyMemory(from: &Constants, byteCount: m_EntityConstsSize)
     }
@@ -261,7 +266,6 @@ class Renderer: NSObject, MTKViewDelegate {
         
         for (Index, Light) in m_Scene.m_Lights.enumerated()
         {
-            
             let LightsBufferOffset = ((m_FrameIndex % MaxFramesInFlight) * m_MaxLights) + m_LightBufferStride * Index
             let LightsBufferPointer = m_LightBuffer.contents().advanced(by: LightsBufferOffset).assumingMemoryBound(to: PointLight.self)
             LightsBufferPointer[Index] = PointLight(Position: Light.m_Position,
@@ -283,5 +287,19 @@ class Renderer: NSObject, MTKViewDelegate {
         } catch {
             fatalError("Error creating RenderPipelineState: \(error)")
         }
+    }
+    
+    func CreateSamplerState() -> MTLSamplerState {
+        let SamplerDescriptor = MTLSamplerDescriptor()
+        
+        SamplerDescriptor.normalizedCoordinates = true
+        SamplerDescriptor.magFilter = .linear
+        SamplerDescriptor.minFilter = .linear
+        SamplerDescriptor.mipFilter = .nearest
+        SamplerDescriptor.sAddressMode = .repeat
+        SamplerDescriptor.tAddressMode = .repeat
+        
+        let SamplerState = g_Device.makeSamplerState(descriptor: SamplerDescriptor)!
+        return SamplerState
     }
 }
