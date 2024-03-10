@@ -16,11 +16,12 @@ struct VertexData {
 
 struct VertexOut {
     float4 position [[position]];
-    float4 worldPosition;
-    float4 viewPosition;
-    float2 textCoords;
+    float4 wsVertexPosition; // WorldSpace
+    float4 vsVertexPosition; // ViewSpace
+    float4 vsVertexNormal;
     float4 color;
-    float4 viewNormal;
+    float2 textCoords;
+    
 };
 
 struct EntityConstants {
@@ -28,10 +29,11 @@ struct EntityConstants {
     float4x4 modelViewMatrix;
 };
 
-struct FrameConstants {
-    float4x4 projectionMatrix;
-    float4x4 viewMatrix;
-    uint lightCount;
+struct FrameConstants {         // 132 - 36 -> 144
+    float4x4 projectionMatrix;  // 64  - 16
+    float4x4 viewMatrix;        // 64  - 16
+    float3 cameraPos;           // 16  - 16
+    uint lightCount;            // 4   - 4
 };
 
 struct Light {
@@ -46,6 +48,16 @@ struct PointLight {
     float intensity;
     float radius;
 };
+
+static float3 calcDiffuseReflection(float3 lightColor, float3 normal, float3 lightDirection) {
+    return lightColor * max(dot(normal, lightDirection), 0.0);
+}
+
+static float3 calcSpecularReflection(float3 lightColor, float3 normal, float3 lightDirection, float3 viewDirection, float shininess) {
+    float3 halfwayVector = normalize(lightDirection + viewDirection);
+    float specularFactor = pow(saturate(dot(normal, halfwayVector)), shininess);
+    return lightColor * specularFactor;
+}
 
 static float calcSmoothAttenuation(float3 lightDirection, float radius)
 {
@@ -65,61 +77,66 @@ static float3 calcDirectionalLight(Light light)
     return result;
 }
 
-static float3 calcPointLight(uint LightCount, PointLight light, float3 vertexWorldPos, float3 vertexNormal, float3 viewPos, float4x4 viewMatrix)
+static float3 calcPointLight(uint LightCount, PointLight light, float3 vertexViewPos, float3 vertexNormal, float3 viewDirection, float4x4 viewMatrix)
 {
-    float3 lightPos = (viewMatrix * float4(light.position, 1)).xyz;
     float3 normal = normalize(vertexNormal);
-    float3 lightDirection = (lightPos - vertexWorldPos);
-    float3 lightDistance = lightDirection;//length(lightDirection);
-    lightDirection = normalize(lightDirection);
+    
+    float3 lightPos = (viewMatrix * float4(light.position, 1.0)).xyz;
+    float3 lightDistance = (lightPos - vertexViewPos);
+    float3 lightDirection = normalize(lightDistance);
+
     float attenuation = calcSmoothAttenuation(lightDistance, light.radius);
     
-    // Calc Diffuse Factor
+    // Diffuse
     lightDistance = normalize(lightDistance);
-    float diffuseFactor = max(dot(normal, lightDirection), 0.0);
-    diffuseFactor *= attenuation;
-    float3 result = light.color * light.intensity * diffuseFactor;
+    float3 matDiffuse = (0.2, 0.3, 0.4);
+    float3 diffuseFactor = calcDiffuseReflection(light.color, normal, lightDirection);
     
-    //Specular
-    float specularStrenght = 3;
-    float3 reflectionDirection = 2 * (normal * lightDirection) * normal - lightDirection;
-    float specularFactor = pow(saturate(dot(viewPos, reflectionDirection)), specularStrenght);
-    result += light.color * light.intensity * specularFactor * attenuation;
+    // Specular
+    float shininess = 3;
+    float3 specularFactor = calcSpecularReflection(light.color, normal, lightDirection, viewDirection, shininess);
+
+    float3 result = light.intensity * specularFactor * attenuation * diffuseFactor;
     
     return result;
 }
 
-vertex VertexOut vertex_main(VertexData in [[stage_in]],
-                             constant FrameConstants &frame [[buffer(3)]],
+static float3 CalcDiffuseReflection(float3 vertexNormal, float3 lightDirection, float3 diffuseColor)
+{
+    float3 result = float3(0,0,0);
+    return result;
+}
+
+vertex VertexOut VertexMain(VertexData in [[stage_in]],
+                             constant FrameConstants &frameConst [[buffer(3)]],
                              constant EntityConstants &entityConst [[buffer(4)]])
 {
     VertexOut output;
-    output.worldPosition = entityConst.modelMatrix * float4(in.position, 1.0);
-    output.position = frame.projectionMatrix * (entityConst.modelViewMatrix * float4(in.position, 1.0));
-    output.viewPosition = entityConst.modelViewMatrix * float4(in.position, 1.0);
+
+    output.vsVertexPosition = entityConst.modelViewMatrix * float4(in.position, 1.0);
+    output.position = frameConst.projectionMatrix * output.vsVertexPosition;
     //output.color = in.color;
     output.color = float4(0.0,1.0,0.0,1.0);
     output.textCoords = in.textCoords;
-    output.viewNormal = entityConst.modelViewMatrix * float4(in.normal, 0.0);
+    output.vsVertexNormal = entityConst.modelViewMatrix * float4(in.normal, 0.0);
 
     return output;
 }
 
-fragment float4 fragment_main(VertexOut in [[stage_in]],
-                              constant FrameConstants &frame [[buffer(2)]],
+fragment float4 FragmentMain(VertexOut in [[stage_in]],
+                              constant FrameConstants &frameConst [[buffer(2)]],
                               constant PointLight *lights [[buffer(4)]],
                               constant EntityConstants &entityConst [[buffer(3)]],
                               texture2d<float, access::sample> textureMap [[texture(0)]],
                               sampler textureSampler [[sampler(0)]])
 {
-    float3 EyeDirectionViewSpace = normalize(float3(0) - in.viewPosition.xyz);
+    float3 EyeDirectionViewSpace = normalize(frameConst.cameraPos - in.vsVertexPosition.xyz);
     
     float3 lighting = 0;
 
-    for (uint i = 0; i < frame.lightCount; ++i) {
-        lighting += calcPointLight(1, lights[i], in.viewPosition.xyz, in.viewNormal.xyz, EyeDirectionViewSpace, frame.viewMatrix);
+    for (uint i = 0; i < frameConst.lightCount; ++i) {
+        lighting += calcPointLight(1, lights[i], in.vsVertexPosition.xyz, in.vsVertexNormal.xyz, EyeDirectionViewSpace, frameConst.viewMatrix);
     }
     
-    //return float4(lighting * in.color.rgb, 1);
     return float4(lighting * textureMap.sample(textureSampler, in.textCoords).rgb, 1);
 }

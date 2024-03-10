@@ -23,6 +23,7 @@ struct EntityConstants {
 struct FrameConstants {
     var m_ProjectionMatrix: simd_float4x4
     var m_ViewMatrix: simd_float4x4
+    var m_CameraPosition: SIMD3<Float>
     var m_LightCount: UInt32
 }
 
@@ -40,6 +41,8 @@ class Renderer: NSObject, MTKViewDelegate {
     private var m_FrameIndex: Int
     
     private var m_Scene: Scene
+    
+    private var m_CameraPosition = SIMD3<Float>(0, 0, 0)
     
     // FrameConstants
     private var m_ConstantBuffer: MTLBuffer!
@@ -84,7 +87,7 @@ class Renderer: NSObject, MTKViewDelegate {
         
         // FrameConstants
         self.m_ConstantsSize = MemoryLayout<FrameConstants>.stride // MemoryLayout<SIMD3<Float>>.size
-        self.m_ConstantsStride = align(m_ConstantsSize, upTo: 256) // Maybe change it to 64 if the GPU Support it ????
+        self.m_ConstantsStride = align(m_ConstantsSize, upTo: 32)
         self.m_ConstantsBufferOffset = 0
         
         // EntityConstants
@@ -140,6 +143,7 @@ class Renderer: NSObject, MTKViewDelegate {
         
         UpdateFrameConstants()
         
+        RenderCommandEncoder.setVertexBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 3)
         RenderCommandEncoder.setFragmentBuffer(m_LightBuffer, offset: m_LightBufferOffset, index: 4)
         
         for (Index, Entity) in m_Scene.m_Entities.enumerated() {
@@ -153,12 +157,12 @@ class Renderer: NSObject, MTKViewDelegate {
                 RenderCommandEncoder.setVertexBuffer(MeshBuffer.buffer, offset: MeshBuffer.offset, index: MeshIndex)
             }
             
-            RenderCommandEncoder.setVertexBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 3)
+            
             RenderCommandEncoder.setVertexBuffer(m_EntityConstBuffer, offset: m_EntityConstsBufferOffset, index: 4)
             
             
             RenderCommandEncoder.setFragmentBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 2)
-            RenderCommandEncoder.setFragmentBuffer(m_EntityConstBuffer, offset: m_EntityConstsBufferOffset, index: 3)
+//            RenderCommandEncoder.setFragmentBuffer(m_EntityConstBuffer, offset: m_EntityConstsBufferOffset, index: 3)
             RenderCommandEncoder.setFragmentTexture(Entity.m_Mesh.m_Texture, index: 0)
             RenderCommandEncoder.setFragmentSamplerState(m_SamplerState, index: 0)
         
@@ -193,8 +197,8 @@ class Renderer: NSObject, MTKViewDelegate {
 
         let RenderPipelineDescriptor = MTLRenderPipelineDescriptor();
         
-        RenderPipelineDescriptor.vertexFunction = m_Library.makeFunction(name: "vertex_main")!
-        RenderPipelineDescriptor.fragmentFunction = m_Library.makeFunction(name: "fragment_main")!
+        RenderPipelineDescriptor.vertexFunction = m_Library.makeFunction(name: "VertexMain")!
+        RenderPipelineDescriptor.fragmentFunction = m_Library.makeFunction(name: "FragmentMain")!
         RenderPipelineDescriptor.colorAttachments[0].pixelFormat = m_View.colorPixelFormat
         
         RenderPipelineDescriptor.depthAttachmentPixelFormat = m_View.depthStencilPixelFormat
@@ -223,8 +227,7 @@ class Renderer: NSObject, MTKViewDelegate {
         let ModelMatrix = TranslateMatrix * RotationMatrix * ScaleMatrix
         
         // ViewMatrix
-        let CameraPosition = SIMD3<Float>(0, 0, 0)
-        let ViewMatrix = simd_float4x4(Translate: -CameraPosition, M: matrix_identity_float4x4)
+        let ViewMatrix = simd_float4x4(Translate: -m_CameraPosition, M: matrix_identity_float4x4)
         
         let ModelViewMatrix = ViewMatrix * ModelMatrix
         var Constants = EntityConstants(m_ModelMatrix: ModelMatrix, m_ModelViewMatrix: ModelViewMatrix)
@@ -246,16 +249,15 @@ class Renderer: NSObject, MTKViewDelegate {
 //                                             near: 0.1,
 //                                             far: 100.0)
        
-        let ProjectionMatrix = simd_float4x4(perspectiveProjectionFoVY: 45.0 * (Float.pi/180),
+        let ProjectionMatrix = simd_float4x4(PerspectiveProjectionFoVY: 45.0 * (Float.pi/180),
                                              aspectRatio: AspectRatio,
                                              near: 0.1,
                                              far: 1000.0)
         
         // ViewMatrix
-        let CameraPosition = SIMD3<Float>(0, 0, 0)
-        let ViewMatrix = simd_float4x4(Translate: -CameraPosition, M: matrix_identity_float4x4)
+        let ViewMatrix = simd_float4x4(Translate: -m_CameraPosition, M: matrix_identity_float4x4)
         
-        var Constants = FrameConstants(m_ProjectionMatrix: ProjectionMatrix, m_ViewMatrix: ViewMatrix, m_LightCount: UInt32(m_Scene.m_Lights.count))
+        var Constants = FrameConstants(m_ProjectionMatrix: ProjectionMatrix, m_ViewMatrix: ViewMatrix, m_CameraPosition: m_CameraPosition, m_LightCount: UInt32(m_Scene.m_Lights.count))
         
         m_ConstantsBufferOffset = (m_FrameIndex % MaxFramesInFlight) * m_ConstantsStride
         let BufferData = m_ConstantBuffer.contents().advanced(by: m_ConstantsBufferOffset)
@@ -266,6 +268,7 @@ class Renderer: NSObject, MTKViewDelegate {
         
         for (Index, Light) in m_Scene.m_Lights.enumerated()
         {
+            //let LightsBufferOffset = ((m_FrameIndex % (MaxFramesInFlight - 1)) * m_MaxLights) + m_LightBufferStride * Index
             let LightsBufferOffset = ((m_FrameIndex % MaxFramesInFlight) * m_MaxLights) + m_LightBufferStride * Index
             let LightsBufferPointer = m_LightBuffer.contents().advanced(by: LightsBufferOffset).assumingMemoryBound(to: PointLight.self)
             LightsBufferPointer[Index] = PointLight(Position: Light.m_Position,
