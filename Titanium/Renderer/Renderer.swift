@@ -92,12 +92,12 @@ class Renderer: NSObject, MTKViewDelegate {
         
         // EntityConstants
         self.m_EntityConstsSize = MemoryLayout<EntityConstants>.stride
-        self.m_EntityConstsStride = align(m_EntityConstsSize, upTo: 256)
+        self.m_EntityConstsStride = align(m_EntityConstsSize, upTo: 8)
         self.m_EntityConstsBufferOffset = 0
         
         // Lights
         self.m_LightSize = MemoryLayout<PointLight>.stride
-        self.m_LightBufferStride = align(m_LightSize, upTo: 288)
+        self.m_LightBufferStride = align(m_LightSize, upTo: 96)
         self.m_LightBufferOffset = 0
         
         super.init()
@@ -266,16 +266,10 @@ class Renderer: NSObject, MTKViewDelegate {
     
     func UpdateLightBuffer() {
         
-        for (Index, Light) in m_Scene.m_Lights.enumerated()
-        {
-            //let LightsBufferOffset = ((m_FrameIndex % (MaxFramesInFlight - 1)) * m_MaxLights) + m_LightBufferStride * Index
-            let LightsBufferOffset = ((m_FrameIndex % MaxFramesInFlight) * m_MaxLights) + m_LightBufferStride * Index
-            let LightsBufferPointer = m_LightBuffer.contents().advanced(by: LightsBufferOffset).assumingMemoryBound(to: PointLight.self)
-            LightsBufferPointer[Index] = PointLight(Position: Light.m_Position,
-                                                    Color: Light.m_Color,
-                                                    Intensity: Light.m_Intensity,
-                                                    Radius: Light.m_Radius)
-        }
+        m_LightBufferOffset = (m_FrameIndex % MaxFramesInFlight) * m_MaxLights * m_LightBufferStride
+        
+        let lightsPointer = m_LightBuffer.contents().bindMemory(to: PointLight.self, capacity: m_Scene.m_Lights.count)
+        lightsPointer.update(from: m_Scene.m_Lights, count: m_Scene.m_Lights.count)
     }
     
     func CreateRenderPipelineState() -> MTLRenderPipelineState {

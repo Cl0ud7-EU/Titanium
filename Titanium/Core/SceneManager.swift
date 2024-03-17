@@ -24,6 +24,7 @@ class Scene {
         m_Entities.append(entity)
         
         CreatePointLight(Position: SIMD3<Float>(-300.0, 100.0, 0), Color: SIMD3<Float>(1.0, 0.0, 0.0), Intensity: 1.0, Radius: 20.5)
+        CreatePointLight(Position: SIMD3<Float>(0.0, 100.0, 0), Color: SIMD3<Float>(0.0, 1.0, 0.0), Intensity: 1.0, Radius: 20.5)
     }
     
     func CreatePointLight(Position: SIMD3<Float>, Color: SIMD3<Float>, Intensity: Float, Radius: Float) {
