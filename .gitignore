@@ -8,9 +8,13 @@ xcuserdata/
 
 ### Xcode Patch ###
 *.xcodeproj/*
+*.xcbkptlist
 !*.xcodeproj/project.pbxproj
 !*.xcodeproj/xcshareddata/
 !*.xcodeproj/project.xcworkspace/
 !*.xcworkspace/contents.xcworkspacedata
 /*.gcno
 **/xcshareddata/WorkspaceSettings.xcsettings
+
+# Ignore the Resources directory
+Titanium/Resources

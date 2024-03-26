@@ -18,7 +18,7 @@ struct DirectionalLight {
     var m_Color: SIMD3<Float>
     var m_Intensity: Float
     
-    init(Direction: SIMD3<Float> = SIMD3<Float>(0, 0, 0), //16
+    init(Direction: SIMD3<Float> = SIMD3<Float>(1, 1, -1), //16
          Color: SIMD3<Float> = SIMD3<Float>(1, 1, 1), //16
          Intensity: Float = 1.0) //4
     {
@@ -29,6 +29,7 @@ struct DirectionalLight {
 }
 
 struct PointLight {
+    // var m_PositionRadius: SIMD4<Float> // Position = XYZ, Radius = W. // Future change
     var m_Position: SIMD3<Float>
     var m_Color: SIMD3<Float>
     var m_Intensity: Float
@@ -44,4 +45,10 @@ struct PointLight {
         self.m_Intensity = Intensity
         self.m_Radius = Radius
     }
+}
+
+struct SpotLight {
+    var m_Position: SIMD3<Float>
+    var m_Direction: SIMD3<Float>
+    var m_Color: SIMD3<Float>
 }

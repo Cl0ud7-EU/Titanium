@@ -33,10 +33,11 @@ struct FrameConstants {         // 132 - 36 -> 144
     float4x4 projectionMatrix;  // 64  - 16
     float4x4 viewMatrix;        // 64  - 16
     float3 cameraPos;           // 16  - 16
-    uint lightCount;            // 4   - 4
+    uint pointLightCount;            // 4   - 4
+    uint spotLightCount;
 };
 
-struct Light {
+struct DirectionalLight {
     float3 direction;
     float3 color;
     float intensity;
@@ -68,12 +69,13 @@ static float calcSmoothAttenuation(float3 lightDirection, float radius)
     return result;
 }
 
-static float3 calcDirectionalLight(Light light)
+static float3 calcDirectionalLight(DirectionalLight light, float3 vertexViewPos, float3 vertexNormal, float3 viewDirection)
 {
-    float3 normal = (0.3, 0.0, 0.2);
-    float3 lightDirection = normalize(-light.color);
-    float diffuseFactor = max(dot(normal, lightDirection), 0.0);
-    float3 result = light.color * light.intensity * diffuseFactor;
+    float3 normal = normalize(vertexNormal);
+    float3 lightDirection = normalize(-light.direction);
+    
+    float3 diffuseFactor = calcDiffuseReflection(light.color, normal, lightDirection);
+    float3 result = light.intensity * diffuseFactor;
     return result;
 }
 
@@ -125,7 +127,7 @@ vertex VertexOut VertexMain(VertexData in [[stage_in]],
 
 fragment float4 FragmentMain(VertexOut in [[stage_in]],
                               constant FrameConstants &frameConst [[buffer(2)]],
-                              constant PointLight *lights [[buffer(4)]],
+                              constant PointLight *pointLights [[buffer(4)]],
                               constant EntityConstants &entityConst [[buffer(3)]],
                               texture2d<float, access::sample> textureMap [[texture(0)]],
                               sampler textureSampler [[sampler(0)]])
@@ -134,8 +136,8 @@ fragment float4 FragmentMain(VertexOut in [[stage_in]],
     
     float3 lighting = 0;
 
-    for (uint i = 0; i < frameConst.lightCount; ++i) {
-        lighting += calcPointLight(1, lights[i], in.vsVertexPosition.xyz, in.vsVertexNormal.xyz, EyeDirectionViewSpace, frameConst.viewMatrix);
+    for (uint i = 0; i < frameConst.pointLightCount; ++i) {
+        lighting += calcPointLight(1, pointLights[i], in.vsVertexPosition.xyz, in.vsVertexNormal.xyz, EyeDirectionViewSpace, frameConst.viewMatrix);
     }
     
     return float4(lighting * textureMap.sample(textureSampler, in.textCoords).rgb, 1);

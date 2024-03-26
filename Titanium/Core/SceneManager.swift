@@ -11,7 +11,8 @@ import simd
 class Scene {
     
     var m_Entities: [Entity] = []
-    var m_Lights: [PointLight] = []
+    var m_PointLights: [PointLight] = []
+    var m_SpotLights: [SpotLight] = []
     let m_AssetLoader: AssetLoader
     
     init() {
@@ -28,7 +29,7 @@ class Scene {
     }
     
     func CreatePointLight(Position: SIMD3<Float>, Color: SIMD3<Float>, Intensity: Float, Radius: Float) {
-        m_Lights.append(PointLight(Position: Position, Color: Color, Intensity: Intensity, Radius: Radius))
+        m_PointLights.append(PointLight(Position: Position, Color: Color, Intensity: Intensity, Radius: Radius))
     }
     
     func CreateCube(Translation: SIMD3<Float>, Rotation: SIMD3<Float>, Scale: SIMD3<Float>) {

@@ -10,10 +10,9 @@ import Metal
 import MetalKit
 import simd
 
-let MaxFramesInFlight = 3;
+let g_MaxFramesInFlight = 3;
 
 var g_Device: MTLDevice!
-let MinBufferAlignment = 256
 
 struct EntityConstants {
     var m_ModelMatrix: simd_float4x4
@@ -24,7 +23,8 @@ struct FrameConstants {
     var m_ProjectionMatrix: simd_float4x4
     var m_ViewMatrix: simd_float4x4
     var m_CameraPosition: SIMD3<Float>
-    var m_LightCount: UInt32
+    var m_PointLightCount: UInt32
+    var m_SpotLightCount: UInt32
 }
 
 class Renderer: NSObject, MTKViewDelegate {
@@ -37,7 +37,7 @@ class Renderer: NSObject, MTKViewDelegate {
     private var m_DepthStencilState: MTLDepthStencilState!
     private var m_SamplerState: MTLSamplerState!
     
-    private var m_FrameSempahore = DispatchSemaphore(value: MaxFramesInFlight)
+    private var m_FrameSempahore = DispatchSemaphore(value: g_MaxFramesInFlight)
     private var m_FrameIndex: Int
     
     private var m_Scene: Scene
@@ -63,10 +63,13 @@ class Renderer: NSObject, MTKViewDelegate {
     
     // Lights
     private let m_MaxLights: Int = 32
-    private var m_LightBuffer: MTLBuffer!
-    private let m_LightSize: Int
-    private let m_LightBufferStride: Int
-    private var m_LightBufferOffset: Int
+    private var m_PointLightsBuffer: MTLBuffer!
+    private let m_PointLightStride: Int
+    private var m_PointLightsBufferOffset: Int
+    
+    private var m_SpotLightsBuffer: MTLBuffer!
+    private let m_SpotLightStride: Int
+    private var m_SpotLightBufferOffset: Int
     
     private var currentConstantBufferOffset = 0
     
@@ -95,10 +98,12 @@ class Renderer: NSObject, MTKViewDelegate {
         self.m_EntityConstsStride = align(m_EntityConstsSize, upTo: 8)
         self.m_EntityConstsBufferOffset = 0
         
-        // Lights
-        self.m_LightSize = MemoryLayout<PointLight>.stride
-        self.m_LightBufferStride = align(m_LightSize, upTo: 96)
-        self.m_LightBufferOffset = 0
+        // PointLights
+        self.m_PointLightStride = MemoryLayout<PointLight>.stride
+        self.m_PointLightsBufferOffset = 0
+        
+        self.m_SpotLightStride = MemoryLayout<SpotLight>.stride
+        self.m_SpotLightBufferOffset = 0
         
         super.init()
         
@@ -111,13 +116,13 @@ class Renderer: NSObject, MTKViewDelegate {
         m_RenderPipelineState = CreateRenderPipelineState()
         m_SamplerState = CreateSamplerState()
     
-        m_ConstantBuffer = g_Device.makeBuffer(length: m_ConstantsStride * MaxFramesInFlight, options: .storageModeShared)
+        m_ConstantBuffer = g_Device.makeBuffer(length: m_ConstantsStride * g_MaxFramesInFlight, options: .storageModeShared)
         
-        m_LightBuffer = g_Device.makeBuffer(length: m_MaxLights * m_LightBufferStride * MaxFramesInFlight, options: .storageModeShared)
+        m_PointLightsBuffer = g_Device.makeBuffer(length: m_MaxLights * m_PointLightStride * g_MaxFramesInFlight, options: .storageModeShared)
         
-        m_EntityConstBuffer = g_Device.makeBuffer(length: m_EntityConstsStride * MaxFramesInFlight * m_MaxDrawableEntities, options: .storageModeShared)
+        m_EntityConstBuffer = g_Device.makeBuffer(length: m_EntityConstsStride * g_MaxFramesInFlight * m_MaxDrawableEntities, options: .storageModeShared)
         
-        UpdateLightBuffer()
+        UpdateLightBuffers()
     }
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -144,7 +149,7 @@ class Renderer: NSObject, MTKViewDelegate {
         UpdateFrameConstants()
         
         RenderCommandEncoder.setVertexBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 3)
-        RenderCommandEncoder.setFragmentBuffer(m_LightBuffer, offset: m_LightBufferOffset, index: 4)
+        RenderCommandEncoder.setFragmentBuffer(m_PointLightsBuffer, offset: m_PointLightsBufferOffset, index: 4)
         
         for (Index, Entity) in m_Scene.m_Entities.enumerated() {
             
@@ -232,7 +237,7 @@ class Renderer: NSObject, MTKViewDelegate {
         let ModelViewMatrix = ViewMatrix * ModelMatrix
         var Constants = EntityConstants(m_ModelMatrix: ModelMatrix, m_ModelViewMatrix: ModelViewMatrix)
         
-        m_EntityConstsBufferOffset = ((m_FrameIndex % MaxFramesInFlight) * m_MaxDrawableEntities) + m_EntityConstsStride * EntityIndex
+        m_EntityConstsBufferOffset = ((m_FrameIndex % g_MaxFramesInFlight) * m_MaxDrawableEntities) + m_EntityConstsStride * EntityIndex
         let BufferData = m_EntityConstBuffer.contents().advanced(by: m_EntityConstsBufferOffset)
         BufferData.copyMemory(from: &Constants, byteCount: m_EntityConstsSize)
     }
@@ -257,19 +262,19 @@ class Renderer: NSObject, MTKViewDelegate {
         // ViewMatrix
         let ViewMatrix = simd_float4x4(Translate: -m_CameraPosition, M: matrix_identity_float4x4)
         
-        var Constants = FrameConstants(m_ProjectionMatrix: ProjectionMatrix, m_ViewMatrix: ViewMatrix, m_CameraPosition: m_CameraPosition, m_LightCount: UInt32(m_Scene.m_Lights.count))
+        var Constants = FrameConstants(m_ProjectionMatrix: ProjectionMatrix, m_ViewMatrix: ViewMatrix, m_CameraPosition: m_CameraPosition, m_PointLightCount: UInt32(m_Scene.m_PointLights.count), m_SpotLightCount: UInt32(m_Scene.m_SpotLights.count))
         
-        m_ConstantsBufferOffset = (m_FrameIndex % MaxFramesInFlight) * m_ConstantsStride
+        m_ConstantsBufferOffset = (m_FrameIndex % g_MaxFramesInFlight) * m_ConstantsStride
         let BufferData = m_ConstantBuffer.contents().advanced(by: m_ConstantsBufferOffset)
         BufferData.copyMemory(from: &Constants, byteCount: m_ConstantsSize)
     }
     
-    func UpdateLightBuffer() {
+    func UpdateLightBuffers() {
         
-        m_LightBufferOffset = (m_FrameIndex % MaxFramesInFlight) * m_MaxLights * m_LightBufferStride
+        m_PointLightsBufferOffset = (m_FrameIndex % g_MaxFramesInFlight) * m_MaxLights * m_PointLightStride
         
-        let lightsPointer = m_LightBuffer.contents().bindMemory(to: PointLight.self, capacity: m_Scene.m_Lights.count)
-        lightsPointer.update(from: m_Scene.m_Lights, count: m_Scene.m_Lights.count)
+        let lightsPointer = m_PointLightsBuffer.contents().bindMemory(to: PointLight.self, capacity: m_Scene.m_PointLights.count)
+        lightsPointer.update(from: m_Scene.m_PointLights, count: m_Scene.m_PointLights.count)
     }
     
     func CreateRenderPipelineState() -> MTLRenderPipelineState {
