@@ -8,6 +8,8 @@
 import MetalKit
 import Metal
 
+var sliderValue: Float = 0.0
+
 #if os(macOS)
 import Cocoa
 #elseif os(iOS)
@@ -18,17 +20,28 @@ import UIKit
 class ViewController: NSViewController {
 
     @IBOutlet weak var metalView: MTKView!
+    @IBOutlet weak var horizontalSlider: NSSlider!
+    
+    
     var m_Renderer: Renderer!
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
         // Do any additional setup after loading the view.
-        let Device = MTLCreateSystemDefaultDevice()!
+        //let Device = MTLCreateSystemDefaultDevice()!
+        let Device = MTLCopyAllDevices().last!
         m_Renderer = Renderer(device: Device, view: metalView)
+        sliderValue = horizontalSlider.floatValue
+        horizontalSlider.target = self
+        horizontalSlider.action = #selector(sliderValueChanged(_:))
         
     }
-
+    @objc func sliderValueChanged(_ sender: NSSlider) {
+        sliderValue = sender.floatValue
+        // Additional actions you want to perform when the slider value changes
+    }
+    
     override var representedObject: Any? {
         didSet {
         // Update the view, if already loaded.

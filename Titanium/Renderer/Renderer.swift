@@ -131,6 +131,8 @@ class Renderer: NSObject, MTKViewDelegate {
     }
     
     func draw(in view: MTKView) {
+        UpdateLightBuffers()
+        print ("sliderValue", sliderValue)
         
         m_FrameSempahore.wait()
         
@@ -168,7 +170,12 @@ class Renderer: NSObject, MTKViewDelegate {
             
             RenderCommandEncoder.setFragmentBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 2)
 //            RenderCommandEncoder.setFragmentBuffer(m_EntityConstBuffer, offset: m_EntityConstsBufferOffset, index: 3)
-            RenderCommandEncoder.setFragmentTexture(Entity.m_Mesh.m_Texture, index: 0)
+            
+            if ((Entity.m_Mesh.m_Texture) != nil)
+            {
+                RenderCommandEncoder.setFragmentTexture(Entity.m_Mesh.m_Texture, index: 0)
+            }
+
             RenderCommandEncoder.setFragmentSamplerState(m_SamplerState, index: 0)
         
             
@@ -271,9 +278,14 @@ class Renderer: NSObject, MTKViewDelegate {
     
     func UpdateLightBuffers() {
         
+        for index in 0..<m_Scene.m_PointLights.count {
+            m_Scene.m_PointLights[index].m_Radius = sliderValue
+        }
+        //m_Scene.m_PointLights[0].m_Radius = sliderValue
+        
         m_PointLightsBufferOffset = (m_FrameIndex % g_MaxFramesInFlight) * m_MaxLights * m_PointLightStride
         
-        let lightsPointer = m_PointLightsBuffer.contents().bindMemory(to: PointLight.self, capacity: m_Scene.m_PointLights.count)
+        let lightsPointer = m_PointLightsBuffer.contents().advanced(by: m_PointLightsBufferOffset).bindMemory(to: PointLight.self, capacity: m_Scene.m_PointLights.count)
         lightsPointer.update(from: m_Scene.m_PointLights, count: m_Scene.m_PointLights.count)
     }
     

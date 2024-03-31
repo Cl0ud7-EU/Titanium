@@ -33,7 +33,7 @@ struct FrameConstants {         // 132 - 36 -> 144
     float4x4 projectionMatrix;  // 64  - 16
     float4x4 viewMatrix;        // 64  - 16
     float3 cameraPos;           // 16  - 16
-    uint pointLightCount;            // 4   - 4
+    uint pointLightCount;       // 4   - 4
     uint spotLightCount;
 };
 
@@ -60,12 +60,23 @@ static float3 calcSpecularReflection(float3 lightColor, float3 normal, float3 li
     return lightColor * specularFactor;
 }
 
-static float calcSmoothAttenuation(float3 lightDirection, float radius)
+static float calcSmoothAttenuation(float lightDistance, float lightRadius)
 {
-    float squareRadius = dot(lightDirection, lightDirection);
-    float2 attenuationConst = float2(1 / (radius*radius), 2 / radius);
+    float2 attenuationConst = float2(1 / pow(lightRadius, 2), 2 / lightRadius);
     
-    float result = saturate(squareRadius * attenuationConst.x * (sqrt(squareRadius) * attenuationConst.y - 3.0) + 1.0);
+    float result = saturate(pow(lightDistance,2) * attenuationConst.x * (sqrt(pow(lightDistance,2)) * attenuationConst.y - 3.0) + 1.0);
+    
+    return result;
+}
+
+static float calcInverseSquareAttenuation(float lightDistance, float radius)
+{
+    
+    float rmin = 150.0;
+    float2 attenuationConst = float2(pow(rmin,2) / (pow(radius, 2) - pow(rmin, 2)), pow(radius, 2));
+                  
+    float result = saturate(attenuationConst.x * (attenuationConst.y / pow(lightDistance, 2) - 1.0));
+    
     return result;
 }
 
@@ -81,26 +92,32 @@ static float3 calcDirectionalLight(DirectionalLight light, float3 vertexViewPos,
 
 static float3 calcPointLight(uint LightCount, PointLight light, float3 vertexViewPos, float3 vertexNormal, float3 viewDirection, float4x4 viewMatrix)
 {
-    float3 normal = normalize(vertexNormal);
     
     float3 lightPos = (viewMatrix * float4(light.position, 1.0)).xyz;
-    float3 lightDistance = (lightPos - vertexViewPos);
-    float3 lightDirection = normalize(lightDistance);
+    float3 lightDirection = (lightPos - vertexViewPos);
+    float lightDistance = length(lightDirection);
+    
+    if (lightDistance < light.radius)
+    {
+        float3 normal = normalize(vertexNormal);
+        lightDirection = normalize(lightDirection);
+        
+        float attenuation = calcSmoothAttenuation(lightDistance, light.radius);
+        //float attenuation = calcInverseSquareAttenuation(lightDistance, light.radius);
+        
+        // Diffuse
+        float3 matDiffuse = (0.2, 0.3, 0.4);
+        float3 diffuseFactor = calcDiffuseReflection(light.color, normal, lightDirection);
+        
+        // Specular
+        float shininess = 3;
+        float3 specularFactor = calcSpecularReflection(light.color, normal, lightDirection, viewDirection, shininess);
 
-    float attenuation = calcSmoothAttenuation(lightDistance, light.radius);
+        float3 result = light.intensity * light.color * attenuation * diffuseFactor;
+        return result;
+    }
     
-    // Diffuse
-    lightDistance = normalize(lightDistance);
-    float3 matDiffuse = (0.2, 0.3, 0.4);
-    float3 diffuseFactor = calcDiffuseReflection(light.color, normal, lightDirection);
-    
-    // Specular
-    float shininess = 3;
-    float3 specularFactor = calcSpecularReflection(light.color, normal, lightDirection, viewDirection, shininess);
-
-    float3 result = light.intensity * specularFactor * attenuation * diffuseFactor;
-    
-    return result;
+    return 0;
 }
 
 static float3 CalcDiffuseReflection(float3 vertexNormal, float3 lightDirection, float3 diffuseColor)
@@ -128,7 +145,6 @@ vertex VertexOut VertexMain(VertexData in [[stage_in]],
 fragment float4 FragmentMain(VertexOut in [[stage_in]],
                               constant FrameConstants &frameConst [[buffer(2)]],
                               constant PointLight *pointLights [[buffer(4)]],
-                              constant EntityConstants &entityConst [[buffer(3)]],
                               texture2d<float, access::sample> textureMap [[texture(0)]],
                               sampler textureSampler [[sampler(0)]])
 {
@@ -141,4 +157,5 @@ fragment float4 FragmentMain(VertexOut in [[stage_in]],
     }
     
     return float4(lighting * textureMap.sample(textureSampler, in.textCoords).rgb, 1);
+    //return float4(lighting * in.color.rgb, in.color.a);
 }

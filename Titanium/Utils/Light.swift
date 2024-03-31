@@ -51,4 +51,5 @@ struct SpotLight {
     var m_Position: SIMD3<Float>
     var m_Direction: SIMD3<Float>
     var m_Color: SIMD3<Float>
+    var m_Intensity: Float
 }

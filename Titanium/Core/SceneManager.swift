@@ -20,17 +20,19 @@ class Scene {
     }
     func LoadScene() {
         
-        let entity = Entity(Translation: SIMD3<Float>(0,0,400), Rotation: SIMD3<Float>(-45,0,0), Mesh: m_AssetLoader.LoadAsset(Path: "untitled"))
-
+        var entity = Entity(Translation: SIMD3<Float>(0,0,400), Rotation: SIMD3<Float>(-45,0,0), Mesh: m_AssetLoader.LoadAsset(Path: "untitled"))
         m_Entities.append(entity)
         
-        CreatePointLight(Position: SIMD3<Float>(-300.0, 100.0, 0), Color: SIMD3<Float>(1.0, 0.0, 0.0), Intensity: 1.0, Radius: 20.5)
-        CreatePointLight(Position: SIMD3<Float>(0.0, 100.0, 0), Color: SIMD3<Float>(0.0, 1.0, 0.0), Intensity: 1.0, Radius: 20.5)
+        
+        CreatePointLight(Position: SIMD3<Float>(0.0, 120.0, 200.0), Color: SIMD3<Float>(1.0, 0.0, 0.0), Intensity: 1.0, Radius: 180)
+        
+        CreatePointLight(Position: SIMD3<Float>(-250.0, 100.0, 0), Color: SIMD3<Float>(0.0, 1.0, 0.0), Intensity: 1.0, Radius: 20.5)
     }
     
     func CreatePointLight(Position: SIMD3<Float>, Color: SIMD3<Float>, Intensity: Float, Radius: Float) {
         m_PointLights.append(PointLight(Position: Position, Color: Color, Intensity: Intensity, Radius: Radius))
     }
+
     
     func CreateCube(Translation: SIMD3<Float>, Rotation: SIMD3<Float>, Scale: SIMD3<Float>) {
 
