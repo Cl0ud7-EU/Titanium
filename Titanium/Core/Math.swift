@@ -98,3 +98,23 @@ func EulerToQuat(Rot: SIMD3<Float>) -> SIMD4<Float> {
                          SinZ * CosY * CosX - CosZ * SinY * SinX,
                          CosZ * CosY * CosX + SinZ * SinY * SinX))
 }
+
+func Translate(Translation: SIMD3<Float>) -> simd_float4x4 {
+    
+    return simd_float4x4(Translate:Translation, M: matrix_identity_float4x4)
+}
+
+func Rotate(Rotation: SIMD3<Float>) -> simd_float4x4 {
+    
+    let RotationInRadians = Rotation * (Float.pi/180)
+    let Rotation = EulerToQuat(Rot: RotationInRadians)
+    return simd_float4x4(Rotate: Rotation)
+}
+
+func DoScale(Scale: SIMD3<Float>) -> simd_float4x4 {
+    return simd_float4x4(Scale: Scale, M: matrix_identity_float4x4)
+}
+
+func GetViewMatrix(CameraPosition: SIMD3<Float>) -> simd_float4x4 {
+    return Translate(Translation: -CameraPosition)
+}
