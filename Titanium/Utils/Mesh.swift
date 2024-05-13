@@ -10,8 +10,8 @@ import MetalKit
 
 struct Vertex {
     let m_Position: SIMD3<Float>
-    let m_Color: SIMD4<Float>
     var m_Normal: SIMD3<Float>
+    let m_Color: SIMD4<Float>
 }
 
 struct Mesh {

@@ -69,9 +69,12 @@ class Renderer: NSObject, MTKViewDelegate {
     
     private var m_SpotLightsBuffer: MTLBuffer!
     private let m_SpotLightStride: Int
-    private var m_SpotLightBufferOffset: Int
+    private var m_SpotLightsBufferOffset: Int
     
     private var currentConstantBufferOffset = 0
+    
+    // Time
+    private var lastFrameTime: CFTimeInterval = 0
     
     init(device: MTLDevice, view: MTKView ) {
         
@@ -102,8 +105,9 @@ class Renderer: NSObject, MTKViewDelegate {
         self.m_PointLightStride = MemoryLayout<PointLight>.stride
         self.m_PointLightsBufferOffset = 0
         
+        // SpotLight
         self.m_SpotLightStride = MemoryLayout<SpotLight>.stride
-        self.m_SpotLightBufferOffset = 0
+        self.m_SpotLightsBufferOffset = 0
         
         super.init()
         
@@ -119,6 +123,7 @@ class Renderer: NSObject, MTKViewDelegate {
         m_ConstantBuffer = g_Device.makeBuffer(length: m_ConstantsStride * g_MaxFramesInFlight, options: .storageModeShared)
         
         m_PointLightsBuffer = g_Device.makeBuffer(length: m_MaxLights * m_PointLightStride * g_MaxFramesInFlight, options: .storageModeShared)
+        m_SpotLightsBuffer = g_Device.makeBuffer(length: m_MaxLights * m_SpotLightStride * g_MaxFramesInFlight, options: .storageModeShared)
         
         m_EntityConstBuffer = g_Device.makeBuffer(length: m_EntityConstsStride * g_MaxFramesInFlight * m_MaxDrawableEntities, options: .storageModeShared)
         
@@ -132,7 +137,7 @@ class Renderer: NSObject, MTKViewDelegate {
     
     func draw(in view: MTKView) {
         UpdateLightBuffers()
-        print ("sliderValue", sliderValue)
+        print ("angleValue", angleValue)
         
         m_FrameSempahore.wait()
         
@@ -152,12 +157,24 @@ class Renderer: NSObject, MTKViewDelegate {
         
         RenderCommandEncoder.setVertexBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 3)
         RenderCommandEncoder.setFragmentBuffer(m_PointLightsBuffer, offset: m_PointLightsBufferOffset, index: 4)
+        RenderCommandEncoder.setFragmentBuffer(m_SpotLightsBuffer, offset: m_SpotLightsBufferOffset, index: 5)
+        
+        let currentTime = CACurrentMediaTime()
+        if lastFrameTime == 0 {
+            lastFrameTime = currentTime
+        }
+        let deltaTime = Float(currentTime - lastFrameTime)
+        lastFrameTime = currentTime
         
         for (Index, Entity) in m_Scene.m_Entities.enumerated() {
             
             let mesh = Entity.m_Mesh
             //guard let mesh = Entity.m_Mesh else { continue }
             
+            if (Index <= 1)
+            {
+                m_Scene.ApplyRotationY(Entity: Entity, DeltaTime: deltaTime)
+            }
             UpdateEntityConstants(Translation: Entity.m_Translation, Rotation: Entity.m_Rotation, Scale: Entity.m_Scale, EntityIndex: Index)
             
             for (MeshIndex, MeshBuffer) in mesh.m_MTKMesh.vertexBuffers.enumerated() {
@@ -220,26 +237,24 @@ class Renderer: NSObject, MTKViewDelegate {
         DepthStencilDescriptor.isDepthWriteEnabled = true
         m_DepthStencilState = g_Device.makeDepthStencilState(descriptor: DepthStencilDescriptor)!
         
+        
+        
         return RenderPipelineDescriptor
     }
     
     func UpdateEntityConstants(Translation: SIMD3<Float>, Rotation: SIMD3<Float>, Scale: SIMD3<Float>, EntityIndex: Int) {
         
         // ModelMatrix
-        let Scale = Scale
-        let ScaleMatrix = simd_float4x4(Scale: Scale, M: matrix_identity_float4x4)
+        let ScaleMatrix = DoScale(Scale: Scale)
         
-        let RotationRadians = Rotation * (Float.pi/180)
-        let Rotation = EulerToQuat(Rot: RotationRadians)
-        let RotationMatrix = simd_float4x4(Rotate: Rotation)
+        let RotationMatrix = Rotate(Rotation: Rotation)
         
-        let Translate = Translation
-        let TranslateMatrix = simd_float4x4(Translate: Translate, M: matrix_identity_float4x4)
+        let TranslateMatrix = Translate(Translation: Translation)
         
         let ModelMatrix = TranslateMatrix * RotationMatrix * ScaleMatrix
         
         // ViewMatrix
-        let ViewMatrix = simd_float4x4(Translate: -m_CameraPosition, M: matrix_identity_float4x4)
+        let ViewMatrix = GetViewMatrix(CameraPosition: -m_CameraPosition)
         
         let ModelViewMatrix = ViewMatrix * ModelMatrix
         var Constants = EntityConstants(m_ModelMatrix: ModelMatrix, m_ModelViewMatrix: ModelViewMatrix)
@@ -278,6 +293,7 @@ class Renderer: NSObject, MTKViewDelegate {
     
     func UpdateLightBuffers() {
         
+        //PointLight
         for index in 0..<m_Scene.m_PointLights.count {
             m_Scene.m_PointLights[index].m_Radius = sliderValue
         }
@@ -287,6 +303,20 @@ class Renderer: NSObject, MTKViewDelegate {
         
         let lightsPointer = m_PointLightsBuffer.contents().advanced(by: m_PointLightsBufferOffset).bindMemory(to: PointLight.self, capacity: m_Scene.m_PointLights.count)
         lightsPointer.update(from: m_Scene.m_PointLights, count: m_Scene.m_PointLights.count)
+        
+        //SpotLight
+        
+        for index in 0..<m_Scene.m_SpotLights.count {
+            m_Scene.m_SpotLights[index].m_ColorAndAngle.w = angleValue
+            
+            let RotationMatrix = Rotate(Rotation: m_Scene.m_SpotLights[index].m_Direction)
+            m_Scene.m_SpotLights[index].m_DirectionViewS = SIMD3<Float>(RotationMatrix[2][0],RotationMatrix[2][1],RotationMatrix[2][2]);
+        }
+        
+        m_SpotLightsBufferOffset = (m_FrameIndex % g_MaxFramesInFlight) * m_MaxLights * m_SpotLightStride
+        
+        let spotLightsPointer = m_SpotLightsBuffer.contents().advanced(by: m_SpotLightsBufferOffset).bindMemory(to: SpotLight.self, capacity: m_Scene.m_SpotLights.count)
+        spotLightsPointer.update(from: m_Scene.m_SpotLights, count: m_Scene.m_SpotLights.count)
     }
     
     func CreateRenderPipelineState() -> MTLRenderPipelineState {
