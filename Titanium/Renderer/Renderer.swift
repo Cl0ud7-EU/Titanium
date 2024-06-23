@@ -14,8 +14,13 @@ let g_MaxFramesInFlight = 3;
 
 var g_Device: MTLDevice!
 
+enum PassType {
+    case Render
+    case Shadow
+}
+
 struct EntityConstants {
-    var m_ModelMatrix: simd_float4x4
+    //var m_ModelMatrix: simd_float4x4
     var m_ModelViewMatrix: simd_float4x4
 }
 
@@ -43,6 +48,7 @@ class Renderer: NSObject, MTKViewDelegate {
     private var m_Scene: Scene
     
     private var m_CameraPosition = SIMD3<Float>(0, 0, 0)
+    private var m_Camera: Camera
     
     // FrameConstants
     private var m_ConstantBuffer: MTLBuffer!
@@ -59,7 +65,7 @@ class Renderer: NSObject, MTKViewDelegate {
     // Meshes
     private let m_MaxDrawableEntities: Int = 1024
     
-    private var m_Draws: [Draw] = []
+    //private var m_Draws: [Draw] = []
     
     // Lights
     private let m_MaxLights: Int = 32
@@ -73,8 +79,12 @@ class Renderer: NSObject, MTKViewDelegate {
     
     private var currentConstantBufferOffset = 0
     
+    // Shadows
+    private var m_SpotShadowMaps: MTLTexture
+    
     // Time
-    private var lastFrameTime: CFTimeInterval = 0
+    private var LastFrameTime: CFTimeInterval = 0
+    private var DeltaTime: Float = 0
     
     init(device: MTLDevice, view: MTKView ) {
         
@@ -90,6 +100,8 @@ class Renderer: NSObject, MTKViewDelegate {
         
         m_Scene = Scene()
         m_Scene.LoadScene()
+        
+        m_Camera = m_Scene.m_Cameras.first!
         
         // FrameConstants
         self.m_ConstantsSize = MemoryLayout<FrameConstants>.stride // MemoryLayout<SIMD3<Float>>.size
@@ -109,6 +121,19 @@ class Renderer: NSObject, MTKViewDelegate {
         self.m_SpotLightStride = MemoryLayout<SpotLight>.stride
         self.m_SpotLightsBufferOffset = 0
         
+        // Shadows
+        let ShadowTextureDescriptor = MTLTextureDescriptor
+            .texture2DDescriptor(pixelFormat: .depth32Float, width: 2048, height: 2048, mipmapped: false)
+        
+        ShadowTextureDescriptor.resourceOptions = .storageModePrivate
+        ShadowTextureDescriptor.usage           = [.renderTarget, .shaderRead]
+        
+        guard let SpotShadowMaps = device.makeTexture(descriptor: ShadowTextureDescriptor) else {
+            fatalError("Failed to make SpotShadowMap with: \(ShadowTextureDescriptor.description)")
+        }
+        
+        self.m_SpotShadowMaps = SpotShadowMaps
+        
         super.init()
         
         m_View.device = device
@@ -121,11 +146,15 @@ class Renderer: NSObject, MTKViewDelegate {
         m_SamplerState = CreateSamplerState()
     
         m_ConstantBuffer = g_Device.makeBuffer(length: m_ConstantsStride * g_MaxFramesInFlight, options: .storageModeShared)
+        m_ConstantBuffer.label = "Frame Constants Buffer"
         
         m_PointLightsBuffer = g_Device.makeBuffer(length: m_MaxLights * m_PointLightStride * g_MaxFramesInFlight, options: .storageModeShared)
+        m_PointLightsBuffer.label = "PointLights Buffer"
         m_SpotLightsBuffer = g_Device.makeBuffer(length: m_MaxLights * m_SpotLightStride * g_MaxFramesInFlight, options: .storageModeShared)
+        m_SpotLightsBuffer.label = "SpotLights Buffer"
         
         m_EntityConstBuffer = g_Device.makeBuffer(length: m_EntityConstsStride * g_MaxFramesInFlight * m_MaxDrawableEntities, options: .storageModeShared)
+        m_EntityConstBuffer.label = "Entity Constants Buffer"
         
         UpdateLightBuffers()
     }
@@ -136,10 +165,20 @@ class Renderer: NSObject, MTKViewDelegate {
     }
     
     func draw(in view: MTKView) {
-        UpdateLightBuffers()
-        print ("angleValue", angleValue)
         
         m_FrameSempahore.wait()
+        
+        let CurrentTime = CACurrentMediaTime()
+        if LastFrameTime == 0 {
+            LastFrameTime = CurrentTime
+        }
+        DeltaTime = Float(CurrentTime - LastFrameTime)
+        LastFrameTime = CurrentTime
+        
+        UpdateLightBuffers()
+        UpdateFrameConstants()
+
+        CalculateSpotLightShadowMaps()
         
         guard let RenderPassDescriptor = view.currentRenderPassDescriptor else { return }
         
@@ -152,62 +191,12 @@ class Renderer: NSObject, MTKViewDelegate {
         RenderCommandEncoder.setDepthStencilState(m_DepthStencilState)
         RenderCommandEncoder.setFrontFacing(.clockwise)
         RenderCommandEncoder.setCullMode(.back)
+        RenderCommandEncoder.setVertexBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 1)
+        RenderCommandEncoder.setFragmentBuffer(m_PointLightsBuffer, offset: m_PointLightsBufferOffset, index: 3)
+        RenderCommandEncoder.setFragmentBuffer(m_SpotLightsBuffer, offset: m_SpotLightsBufferOffset, index: 4)
+        RenderCommandEncoder.setFragmentBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 2)
         
-        UpdateFrameConstants()
-        
-        RenderCommandEncoder.setVertexBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 3)
-        RenderCommandEncoder.setFragmentBuffer(m_PointLightsBuffer, offset: m_PointLightsBufferOffset, index: 4)
-        RenderCommandEncoder.setFragmentBuffer(m_SpotLightsBuffer, offset: m_SpotLightsBufferOffset, index: 5)
-        
-        let currentTime = CACurrentMediaTime()
-        if lastFrameTime == 0 {
-            lastFrameTime = currentTime
-        }
-        let deltaTime = Float(currentTime - lastFrameTime)
-        lastFrameTime = currentTime
-        
-        for (Index, Entity) in m_Scene.m_Entities.enumerated() {
-            
-            let mesh = Entity.m_Mesh
-            //guard let mesh = Entity.m_Mesh else { continue }
-            
-            if (Index <= 1)
-            {
-                m_Scene.ApplyRotationY(Entity: Entity, DeltaTime: deltaTime)
-            }
-            UpdateEntityConstants(Translation: Entity.m_Translation, Rotation: Entity.m_Rotation, Scale: Entity.m_Scale, EntityIndex: Index)
-            
-            for (MeshIndex, MeshBuffer) in mesh.m_MTKMesh.vertexBuffers.enumerated() {
-                RenderCommandEncoder.setVertexBuffer(MeshBuffer.buffer, offset: MeshBuffer.offset, index: MeshIndex)
-            }
-            
-            
-            RenderCommandEncoder.setVertexBuffer(m_EntityConstBuffer, offset: m_EntityConstsBufferOffset, index: 4)
-            
-            
-            RenderCommandEncoder.setFragmentBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 2)
-//            RenderCommandEncoder.setFragmentBuffer(m_EntityConstBuffer, offset: m_EntityConstsBufferOffset, index: 3)
-            
-            if ((Entity.m_Mesh.m_Texture) != nil)
-            {
-                RenderCommandEncoder.setFragmentTexture(Entity.m_Mesh.m_Texture, index: 0)
-            }
-
-            RenderCommandEncoder.setFragmentSamplerState(m_SamplerState, index: 0)
-        
-            
-            //RenderCommandEncoder.setTriangleFillMode(MTLTriangleFillMode.lines)
-            
-            for SubMesh in mesh.m_MTKMesh.submeshes {
-                let indexBuffer = SubMesh.indexBuffer
-                RenderCommandEncoder.drawIndexedPrimitives(type: SubMesh.primitiveType,
-                                                           indexCount: SubMesh.indexCount,
-                                                           indexType: SubMesh.indexType,
-                                                           indexBuffer: indexBuffer.buffer,
-                                                           indexBufferOffset: indexBuffer.offset)
-            }
-        }
-        
+        DrawEntities(RenderCommandEncoder: RenderCommandEncoder)
         
         RenderCommandEncoder.endEncoding();
         
@@ -220,6 +209,46 @@ class Renderer: NSObject, MTKViewDelegate {
         CommandBuffer.commit();
         
         m_FrameIndex += 1
+    }
+    
+    func DrawEntities(RenderCommandEncoder: MTLRenderCommandEncoder) {
+        for (Index, Entity) in m_Scene.m_Entities.enumerated() {
+            if (Index <= 1) //Check this part bc it should be the same for all the passes in a frame
+            {
+                m_Scene.ApplyRotationY(Entity: Entity, DeltaTime: DeltaTime)
+            }
+            UpdateEntityConstants(Translation: Entity.m_Translation, Rotation: Entity.m_Rotation, Scale: Entity.m_Scale, EntityIndex: Index)
+            RenderCommandEncoder.setVertexBuffer(m_EntityConstBuffer, offset: m_EntityConstsBufferOffset, index: 2)
+            
+            DrawMeshes(RenderCommandEncoder: RenderCommandEncoder, Entity: Entity, Index: Index)
+        }
+    }
+    
+    func DrawMeshes(RenderCommandEncoder: MTLRenderCommandEncoder, Entity: Entity, Index: Int) {
+        let mesh = Entity.m_Mesh
+        //guard let mesh = Entity.m_Mesh else { continue }
+        
+        for (index, MeshBuffer) in mesh.m_MTKMesh.vertexBuffers.enumerated() {
+            RenderCommandEncoder.setVertexBuffer(MeshBuffer.buffer, offset: 0, index: 0)
+        }
+        
+        if ((Entity.m_Mesh.m_Texture) != nil)
+        {
+            RenderCommandEncoder.setFragmentTexture(Entity.m_Mesh.m_Texture, index: 0)
+        }
+
+        RenderCommandEncoder.setFragmentSamplerState(m_SamplerState, index: 0)
+    
+        //RenderCommandEncoder.setTriangleFillMode(MTLTriangleFillMode.lines)
+        
+        for SubMesh in mesh.m_MTKMesh.submeshes {
+            let indexBuffer = SubMesh.indexBuffer
+            RenderCommandEncoder.drawIndexedPrimitives(type: SubMesh.primitiveType,
+                                                       indexCount: SubMesh.indexCount,
+                                                       indexType: SubMesh.indexType,
+                                                       indexBuffer: indexBuffer.buffer,
+                                                       indexBufferOffset: indexBuffer.offset)
+        }
     }
     
     func BuildShaders() -> MTLRenderPipelineDescriptor {
@@ -244,20 +273,8 @@ class Renderer: NSObject, MTKViewDelegate {
     
     func UpdateEntityConstants(Translation: SIMD3<Float>, Rotation: SIMD3<Float>, Scale: SIMD3<Float>, EntityIndex: Int) {
         
-        // ModelMatrix
-        let ScaleMatrix = DoScale(Scale: Scale)
-        
-        let RotationMatrix = Rotate(Rotation: Rotation)
-        
-        let TranslateMatrix = Translate(Translation: Translation)
-        
-        let ModelMatrix = TranslateMatrix * RotationMatrix * ScaleMatrix
-        
-        // ViewMatrix
-        let ViewMatrix = GetViewMatrix(CameraPosition: -m_CameraPosition)
-        
-        let ModelViewMatrix = ViewMatrix * ModelMatrix
-        var Constants = EntityConstants(m_ModelMatrix: ModelMatrix, m_ModelViewMatrix: ModelViewMatrix)
+        let ModelViewMatrix = CreateModelViewMatrix(Translation: Translation, Rotation: Rotation, Scale: Scale, CameraPosition: m_CameraPosition)
+        var Constants = EntityConstants(m_ModelViewMatrix: ModelViewMatrix)
         
         m_EntityConstsBufferOffset = ((m_FrameIndex % g_MaxFramesInFlight) * m_MaxDrawableEntities) + m_EntityConstsStride * EntityIndex
         let BufferData = m_EntityConstBuffer.contents().advanced(by: m_EntityConstsBufferOffset)
@@ -266,6 +283,7 @@ class Renderer: NSObject, MTKViewDelegate {
     
     func UpdateFrameConstants() {
         
+        let Camera = m_Camera
         let AspectRatio = Float(m_View.drawableSize.width / m_View.drawableSize.height)
 //        let CanvasWidth: Float = 1280
 //        let CanvasHeight = CanvasWidth / AspectRatio
@@ -276,15 +294,15 @@ class Renderer: NSObject, MTKViewDelegate {
 //                                             near: 0.1,
 //                                             far: 100.0)
        
-        let ProjectionMatrix = simd_float4x4(PerspectiveProjectionFoVY: 45.0 * (Float.pi/180),
-                                             aspectRatio: AspectRatio,
-                                             near: 0.1,
-                                             far: 1000.0)
+        let ProjectionMatrix = CreatePerspectiveProjMatrix(PerspectiveProjectionFoVY: 45.0 * (Float.pi/180),
+                                                           aspectRatio: Camera.m_AspectRatio,
+                                                           nearPlane: Camera.m_NearPlane,
+                                                           farPlane: Camera.m_FarPlane)
         
         // ViewMatrix
-        let ViewMatrix = simd_float4x4(Translate: -m_CameraPosition, M: matrix_identity_float4x4)
+        let ViewMatrix = simd_float4x4(Translate: -Camera.m_Position, M: matrix_identity_float4x4)
         
-        var Constants = FrameConstants(m_ProjectionMatrix: ProjectionMatrix, m_ViewMatrix: ViewMatrix, m_CameraPosition: m_CameraPosition, m_PointLightCount: UInt32(m_Scene.m_PointLights.count), m_SpotLightCount: UInt32(m_Scene.m_SpotLights.count))
+        var Constants = FrameConstants(m_ProjectionMatrix: ProjectionMatrix, m_ViewMatrix: ViewMatrix, m_CameraPosition: Camera.m_Position, m_PointLightCount: UInt32(m_Scene.m_PointLights.count), m_SpotLightCount: UInt32(m_Scene.m_SpotLights.count))
         
         m_ConstantsBufferOffset = (m_FrameIndex % g_MaxFramesInFlight) * m_ConstantsStride
         let BufferData = m_ConstantBuffer.contents().advanced(by: m_ConstantsBufferOffset)
@@ -307,7 +325,7 @@ class Renderer: NSObject, MTKViewDelegate {
         //SpotLight
         
         for index in 0..<m_Scene.m_SpotLights.count {
-            m_Scene.m_SpotLights[index].m_ColorAndAngle.w = angleValue
+            m_Scene.m_SpotLights[index].m_ColorAndAngle.w = angleValue.toRadians()
             
             let RotationMatrix = Rotate(Rotation: m_Scene.m_SpotLights[index].m_Direction)
             m_Scene.m_SpotLights[index].m_DirectionViewS = SIMD3<Float>(RotationMatrix[2][0],RotationMatrix[2][1],RotationMatrix[2][2]);
@@ -345,5 +363,55 @@ class Renderer: NSObject, MTKViewDelegate {
         
         let SamplerState = g_Device.makeSamplerState(descriptor: SamplerDescriptor)!
         return SamplerState
+    }
+    
+    func CalculateSpotLightShadowMaps() {
+        
+        guard let CommandBuffer = m_CommandQueue.makeCommandBuffer() else { return }
+        
+        let ShadowPassDescriptor =  MTLRenderPassDescriptor()
+        ShadowPassDescriptor.depthAttachment.slice          = 0
+        ShadowPassDescriptor.depthAttachment.clearDepth     = 1.0
+        ShadowPassDescriptor.depthAttachment.loadAction     = MTLLoadAction.clear
+        ShadowPassDescriptor.depthAttachment.storeAction    = MTLStoreAction.store
+        
+        let RenderPipelineState: MTLRenderPipelineState
+        let RenderPipelineStateDescriptor = MTLRenderPipelineDescriptor()
+        RenderPipelineStateDescriptor.vertexFunction = m_Library.makeFunction(name: "shadowVertexFunction")!
+        RenderPipelineStateDescriptor.fragmentFunction = m_Library.makeFunction(name: "shadowFragmentFunction")!
+        RenderPipelineStateDescriptor.depthAttachmentPixelFormat = m_SpotShadowMaps.pixelFormat
+        do {
+            RenderPipelineState = try g_Device.makeRenderPipelineState(descriptor: RenderPipelineStateDescriptor)
+            
+            let spotLights = m_Scene.m_SpotLights
+            
+            for (index, spotLight) in spotLights.enumerated() {
+                let SpotCamera = Camera(position: spotLight.m_Position,
+                                        direction: spotLight.m_DirectionViewS,
+                                        nearPlane: 0.1,
+                                        farPlane: 300,
+                                        viewAngle: spotLight.m_ColorAndAngle.w,
+                                        aspectRatio: 1.0)
+                
+                ShadowPassDescriptor.depthAttachment.texture = m_SpotShadowMaps
+                ShadowPassDescriptor.depthAttachment.slice = index;
+                
+                let ProjectionMatrix = CreatePerspectiveProjMatrix(PerspectiveProjectionFoVY: SpotCamera.m_ViewAngle ?? 45.0 * (Float.pi/180), aspectRatio: SpotCamera.m_AspectRatio, nearPlane: SpotCamera.m_NearPlane, farPlane: SpotCamera.m_FarPlane)
+                
+                guard let ShadowCommandEncoder = CommandBuffer.makeRenderCommandEncoder(descriptor: ShadowPassDescriptor) else {return}
+                ShadowCommandEncoder.label = "SpotShadow %i \(index)"
+                
+                DrawEntities(RenderCommandEncoder: ShadowCommandEncoder)
+                
+                ShadowCommandEncoder.setDepthStencilState(m_DepthStencilState)
+                ShadowCommandEncoder.setRenderPipelineState(RenderPipelineState)
+                ShadowCommandEncoder.endEncoding()
+                
+                let renderpass = MTLRenderPassDescriptor()
+                
+            }
+        } catch {
+            print("Failed to create shadow render pipeline state")
+        }
     }
 }

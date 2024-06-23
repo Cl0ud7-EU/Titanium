@@ -12,6 +12,12 @@ func align(_ value: Int, upTo alignment: Int) -> Int {
     return ((value + alignment - 1) / alignment) * alignment
 }
 
+extension Float {
+    func toRadians() -> Float {
+        return self * .pi / 180
+    }
+}
+
 extension simd_float4x4 {
     init(Translate V: SIMD3<Float>, M: simd_float4x4) {
         self.init(SIMD4<Float>(M[0,0], M[1,0], M[2,0], M[3,0]),
@@ -97,6 +103,36 @@ func EulerToQuat(Rot: SIMD3<Float>) -> SIMD4<Float> {
                          CosZ * SinY * CosX + SinZ * CosY * SinX,
                          SinZ * CosY * CosX - CosZ * SinY * SinX,
                          CosZ * CosY * CosX + SinZ * SinY * SinX))
+}
+
+func CreateModelViewMatrix(Translation: SIMD3<Float>, Rotation: SIMD3<Float>, Scale: SIMD3<Float>,  CameraPosition: SIMD3<Float>) -> simd_float4x4{
+    
+    // ModelMatrix
+    let ScaleMatrix = DoScale(Scale: Scale)
+    
+    let RotationMatrix = Rotate(Rotation: Rotation)
+    
+    let TranslateMatrix = Translate(Translation: Translation)
+    
+    let ModelMatrix = TranslateMatrix * RotationMatrix * ScaleMatrix
+    
+    // ViewMatrix
+    let ViewMatrix = GetViewMatrix(CameraPosition: -CameraPosition)
+    
+    let ModelViewMatrix = ViewMatrix * ModelMatrix
+    return ModelMatrix
+}
+
+func CreatePerspectiveProjMatrix(PerspectiveProjectionFoVY fovYRadians: Float,
+                                 aspectRatio: Float,
+                                 nearPlane: Float,
+                                 farPlane: Float) -> simd_float4x4
+{
+    let ProjectionMatrix = simd_float4x4(PerspectiveProjectionFoVY: 45.0 * (Float.pi/180),
+                                         aspectRatio: aspectRatio,
+                                         near: nearPlane,
+                                         far: farPlane)
+    return ProjectionMatrix
 }
 
 func Translate(Translation: SIMD3<Float>) -> simd_float4x4 {

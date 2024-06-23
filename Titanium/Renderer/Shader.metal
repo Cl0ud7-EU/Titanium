@@ -27,7 +27,7 @@ struct VertexOut {
 };
 
 struct EntityConstants {
-    float4x4 modelMatrix;
+    //float4x4 modelMatrix;
     float4x4 modelViewMatrix;
 };
 
@@ -146,7 +146,7 @@ static float3 calcSpotLight(SpotLight light, float3 vertexViewPos, float3 vertex
     float3 lightPos = (viewMatrix * float4(light.position, 1.0)).xyz;
     float3 lightDirection = normalize(lightPos - vertexViewPos);
     float3 lightForward = light.directionViewS;
-    float lightAngle = light.colorAndAngle.w * (pi/180);
+    float lightAngle = light.colorAndAngle.w;
     
     float cosAngle = dot(normalize(lightForward), lightDirection);
     float cosLightAngle = cos(lightAngle);
@@ -166,8 +166,8 @@ static float3 CalcDiffuseReflection(float3 vertexNormal, float3 lightDirection, 
 }
 
 vertex VertexOut VertexMain(VertexData in [[stage_in]],
-                             constant FrameConstants &frameConst [[buffer(3)]],
-                             constant EntityConstants &entityConst [[buffer(4)]])
+                             constant FrameConstants &frameConst [[buffer(1)]],
+                             constant EntityConstants &entityConst [[buffer(2)]])
 {
     VertexOut output;
 
@@ -183,14 +183,26 @@ vertex VertexOut VertexMain(VertexData in [[stage_in]],
 
 fragment float4 FragmentMain(VertexOut in [[stage_in]],
                               constant FrameConstants &frameConst [[buffer(2)]],
-                              constant PointLight *pointLights [[buffer(4)]],
-                              constant SpotLight *spotLights [[buffer(5)]],
+                              constant PointLight *pointLights [[buffer(3)]],
+                              constant SpotLight *spotLights [[buffer(4)]],
                               texture2d<float, access::sample> textureMap [[texture(0)]],
+                              depth2d<float> shadowMap [[texture(1)]],
                               sampler textureSampler [[sampler(0)]])
 {
     float3 EyeDirectionViewSpace = normalize(frameConst.cameraPos - in.vsVertexPosition.xyz);
     
     float3 lighting = 0;
+    
+    // Shadow
+    constexpr sampler shadowSampler(coord::normalized,
+                                    address::clamp_to_border,
+                                    filter::linear,
+                                    mip_filter::none,
+                                    compare_func::less);
+    
+    float shadow_sample = shadowMap.sample_compare(shadowSampler, in.position.xy , in.position.z);
+    
+    
 
 //    for (uint i = 0; i < frameConst.pointLightCount; ++i) {
 //        lighting += calcPointLight(pointLights[i], in.vsVertexPosition.xyz, in.vsVertexNormal.xyz, EyeDirectionViewSpace, frameConst.viewMatrix);
@@ -203,7 +215,16 @@ fragment float4 FragmentMain(VertexOut in [[stage_in]],
 //    float4 result = float4(lighting * in.color.rgb, in.color.a);
 //    result += float4(lighting * textureMap.sample(textureSampler, in.textCoords).rgb, 1);
 //    return result;
-    //return float4(lighting * textureMap.sample(textureSampler, in.textCoords.xy).rgb, 1);
+//    return float4(lighting * textureMap.sample(textureSampler, in.textCoords.xy).rgb, 1);
     return float4(lighting * in.color.rgb, in.color.a);
     //return float4(in.color.rgb, in.color.a);
 }
+
+vertex float4 shadowVertexFunction(VertexData in [[stage_in]],
+                                   constant  float4x4 &modelViewProjMatrix[[buffer(0)]])
+{
+    float4 vsVertexPosition = modelViewProjMatrix * float4(in.position, 1.0);
+    return vsVertexPosition;
+}
+
+fragment void shadowFragmentFunction() {}

@@ -63,7 +63,7 @@ struct SpotLight {
         self.m_Position = Position
         self.m_Direction = Direction
         self.m_DirectionViewS = SIMD3<Float>(0, 0, 0);
-        self.m_ColorAndAngle = SIMD4<Float>(Color, cos(Angle))
+        self.m_ColorAndAngle = SIMD4<Float>(Color, Angle.toRadians())
         self.m_Intensity = Intensity
     }
 }

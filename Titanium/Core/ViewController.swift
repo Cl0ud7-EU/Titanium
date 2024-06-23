@@ -9,6 +9,7 @@ import MetalKit
 import Metal
 
 var sliderValue: Float = 0.0
+var angleValue: Float = 0.0
 
 #if os(macOS)
 import Cocoa
@@ -21,6 +22,7 @@ class ViewController: NSViewController {
 
     @IBOutlet weak var metalView: MTKView!
     @IBOutlet weak var horizontalSlider: NSSlider!
+    @IBOutlet weak var horizontalSliderAngle: NSSlider!
     
     
     var m_Renderer: Renderer!
@@ -32,13 +34,24 @@ class ViewController: NSViewController {
         //let Device = MTLCreateSystemDefaultDevice()!
         let Device = MTLCopyAllDevices().last!
         m_Renderer = Renderer(device: Device, view: metalView)
+        
+        //Slider Radius
         sliderValue = horizontalSlider.floatValue
         horizontalSlider.target = self
         horizontalSlider.action = #selector(sliderValueChanged(_:))
         
+        //Slider Angle
+        angleValue = horizontalSliderAngle.floatValue
+        horizontalSliderAngle.target = self
+        horizontalSliderAngle.action = #selector(sliderAngleValueChanged(_:))
+        
     }
     @objc func sliderValueChanged(_ sender: NSSlider) {
         sliderValue = sender.floatValue
+        // Additional actions you want to perform when the slider value changes
+    }
+    @objc func sliderAngleValueChanged(_ sender: NSSlider) {
+        angleValue = sender.floatValue
         // Additional actions you want to perform when the slider value changes
     }
     

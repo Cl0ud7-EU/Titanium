@@ -25,20 +25,20 @@
 		031B5D462A35E6CF00D33ED6 /* Shader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030C4BBC29FB02F500E577C7 /* Shader.metal */; };
 		031B5D472A35E6CF00D33ED6 /* Mesh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C269742A0AABBE000A998C /* Mesh.swift */; };
 		031B5D482A35E6CF00D33ED6 /* Light.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0308B3572A2124FA00CA9148 /* Light.swift */; };
-		033151642A4DA25600D95B4C /* untitled.mtl in Resources */ = {isa = PBXBuildFile; fileRef = 033151622A4DA25600D95B4C /* untitled.mtl */; };
-		033151652A4DA25600D95B4C /* untitled.mtl in Resources */ = {isa = PBXBuildFile; fileRef = 033151622A4DA25600D95B4C /* untitled.mtl */; };
-		033151662A4DA25600D95B4C /* untitled.obj in Resources */ = {isa = PBXBuildFile; fileRef = 033151632A4DA25600D95B4C /* untitled.obj */; };
-		033151672A4DA25600D95B4C /* untitled.obj in Resources */ = {isa = PBXBuildFile; fileRef = 033151632A4DA25600D95B4C /* untitled.obj */; };
-		033151692A4DA30500D95B4C /* UtahTeapot_albedo.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 033151682A4DA30500D95B4C /* UtahTeapot_albedo.jpeg */; };
-		0331516A2A4DA30500D95B4C /* UtahTeapot_albedo.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 033151682A4DA30500D95B4C /* UtahTeapot_albedo.jpeg */; };
 		034F1E7C2A1A99E300B01E7C /* Entity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034F1E7B2A1A99E300B01E7C /* Entity.swift */; };
 		035C20032A0C1F6200012346 /* Draw.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035C20022A0C1F6200012346 /* Draw.swift */; };
+		0392AFD82BF5676C000DA635 /* Camera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0392AFD72BF5676B000DA635 /* Camera.swift */; };
+		03ACB8572BA775D700D1EDAA /* untitled.mtl in Resources */ = {isa = PBXBuildFile; fileRef = 03ACB8532BA775D700D1EDAA /* untitled.mtl */; };
+		03ACB8582BA775D700D1EDAA /* untitled.obj in Resources */ = {isa = PBXBuildFile; fileRef = 03ACB8542BA775D700D1EDAA /* untitled.obj */; };
+		03ACB8592BA775D700D1EDAA /* UtahTeapot_albedo.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 03ACB8552BA775D700D1EDAA /* UtahTeapot_albedo.jpeg */; };
 		03AF9F3D2A3E83B800744B9C /* SceneManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03AF9F3C2A3E83B800744B9C /* SceneManager.swift */; };
 		03AF9F3E2A3E83B800744B9C /* SceneManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03AF9F3C2A3E83B800744B9C /* SceneManager.swift */; };
 		03C040522A3E3A0500E1DB32 /* AssetLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C040512A3E3A0500E1DB32 /* AssetLoader.swift */; };
 		03C040542A3E646900E1DB32 /* ModelIOExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C040532A3E646900E1DB32 /* ModelIOExtensions.swift */; };
 		03C269752A0AABBE000A998C /* Mesh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C269742A0AABBE000A998C /* Mesh.swift */; };
 		03D24FC62A0515B2007FB4D0 /* Math.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03D24FC52A0515B2007FB4D0 /* Math.swift */; };
+		03E305A72BC1C6E8006718BE /* Box.mtl in Resources */ = {isa = PBXBuildFile; fileRef = 03E305A42BC1C6E8006718BE /* Box.mtl */; };
+		03E305A82BC1C6E8006718BE /* Box.obj in Resources */ = {isa = PBXBuildFile; fileRef = 03E305A52BC1C6E8006718BE /* Box.obj */; };
 		03EFAC5329FC8A9700332D01 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 03EEDB6F29FC881F002BA24C /* LaunchScreen.storyboard */; };
 		03EFAC5429FC8A9700332D01 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 03EEDB6C29FC8661002BA24C /* Main.storyboard */; };
 		03EFAC5529FC8A9700332D01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 030C4B7A29FA827200E577C7 /* Assets.xcassets */; };
@@ -55,16 +55,19 @@
 		030C4BBA29FADADB00E577C7 /* Renderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renderer.swift; sourceTree = "<group>"; };
 		030C4BBC29FB02F500E577C7 /* Shader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shader.metal; sourceTree = "<group>"; };
 		031B5D492A35E7D300D33ED6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		033151622A4DA25600D95B4C /* untitled.mtl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = untitled.mtl; path = "../../../../../../Downloads/utah-teapot-pbr/untitled.mtl"; sourceTree = "<group>"; };
-		033151632A4DA25600D95B4C /* untitled.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = untitled.obj; path = "../../../../../../Downloads/utah-teapot-pbr/untitled.obj"; sourceTree = "<group>"; };
-		033151682A4DA30500D95B4C /* UtahTeapot_albedo.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; name = UtahTeapot_albedo.jpeg; path = "../../../../../../Downloads/utah-teapot-pbr/textures/UtahTeapot_albedo.jpeg"; sourceTree = "<group>"; };
 		034F1E7B2A1A99E300B01E7C /* Entity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Entity.swift; sourceTree = "<group>"; };
 		035C20022A0C1F6200012346 /* Draw.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Draw.swift; sourceTree = "<group>"; };
+		0392AFD72BF5676B000DA635 /* Camera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Camera.swift; sourceTree = "<group>"; };
+		03ACB8532BA775D700D1EDAA /* untitled.mtl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = untitled.mtl; sourceTree = "<group>"; };
+		03ACB8542BA775D700D1EDAA /* untitled.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = untitled.obj; sourceTree = "<group>"; };
+		03ACB8552BA775D700D1EDAA /* UtahTeapot_albedo.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = UtahTeapot_albedo.jpeg; sourceTree = "<group>"; };
 		03AF9F3C2A3E83B800744B9C /* SceneManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneManager.swift; sourceTree = "<group>"; };
 		03C040512A3E3A0500E1DB32 /* AssetLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetLoader.swift; sourceTree = "<group>"; };
 		03C040532A3E646900E1DB32 /* ModelIOExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelIOExtensions.swift; sourceTree = "<group>"; };
 		03C269742A0AABBE000A998C /* Mesh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mesh.swift; sourceTree = "<group>"; };
 		03D24FC52A0515B2007FB4D0 /* Math.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Math.swift; sourceTree = "<group>"; };
+		03E305A42BC1C6E8006718BE /* Box.mtl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Box.mtl; sourceTree = "<group>"; };
+		03E305A52BC1C6E8006718BE /* Box.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Box.obj; sourceTree = "<group>"; };
 		03EEDB5029FC84F2002BA24C /* Titanium-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Titanium-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		03EEDB6B29FC8661002BA24C /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		03EEDB6C29FC8661002BA24C /* Main.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Main.storyboard; sourceTree = "<group>"; };
@@ -121,22 +124,23 @@
 			path = Titanium;
 			sourceTree = "<group>";
 		};
-		033151612A4DA23600D95B4C /* TeapotPBR */ = {
-			isa = PBXGroup;
-			children = (
-				033151682A4DA30500D95B4C /* UtahTeapot_albedo.jpeg */,
-				033151622A4DA25600D95B4C /* untitled.mtl */,
-				033151632A4DA25600D95B4C /* untitled.obj */,
-			);
-			path = TeapotPBR;
-			sourceTree = "<group>";
-		};
 		039892732A48F6CD0095055D /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				033151612A4DA23600D95B4C /* TeapotPBR */,
+				03E305A62BC1C6E8006718BE /* Box */,
+				03ACB8562BA775D700D1EDAA /* Utah_Teapot */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		03ACB8562BA775D700D1EDAA /* Utah_Teapot */ = {
+			isa = PBXGroup;
+			children = (
+				03ACB8532BA775D700D1EDAA /* untitled.mtl */,
+				03ACB8542BA775D700D1EDAA /* untitled.obj */,
+				03ACB8552BA775D700D1EDAA /* UtahTeapot_albedo.jpeg */,
+			);
+			path = Utah_Teapot;
 			sourceTree = "<group>";
 		};
 		03C269722A0AAB80000A998C /* Platform */ = {
@@ -171,6 +175,7 @@
 			children = (
 				030C4BBA29FADADB00E577C7 /* Renderer.swift */,
 				035C20022A0C1F6200012346 /* Draw.swift */,
+				0392AFD72BF5676B000DA635 /* Camera.swift */,
 				030C4BBC29FB02F500E577C7 /* Shader.metal */,
 			);
 			path = Renderer;
@@ -187,6 +192,15 @@
 				03AF9F3C2A3E83B800744B9C /* SceneManager.swift */,
 			);
 			path = Core;
+			sourceTree = "<group>";
+		};
+		03E305A62BC1C6E8006718BE /* Box */ = {
+			isa = PBXGroup;
+			children = (
+				03E305A42BC1C6E8006718BE /* Box.mtl */,
+				03E305A52BC1C6E8006718BE /* Box.obj */,
+			);
+			path = Box;
 			sourceTree = "<group>";
 		};
 		03EEDB4B29FC84B4002BA24C /* iOS */ = {
@@ -279,10 +293,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				030C4B7B29FA827200E577C7 /* Assets.xcassets in Resources */,
-				033151692A4DA30500D95B4C /* UtahTeapot_albedo.jpeg in Resources */,
-				033151642A4DA25600D95B4C /* untitled.mtl in Resources */,
-				033151662A4DA25600D95B4C /* untitled.obj in Resources */,
+				03ACB8572BA775D700D1EDAA /* untitled.mtl in Resources */,
+				03ACB8582BA775D700D1EDAA /* untitled.obj in Resources */,
+				03E305A72BC1C6E8006718BE /* Box.mtl in Resources */,
+				03ACB8592BA775D700D1EDAA /* UtahTeapot_albedo.jpeg in Resources */,
 				030C4B7E29FA827200E577C7 /* Main.storyboard in Resources */,
+				03E305A82BC1C6E8006718BE /* Box.obj in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -291,11 +307,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				03EFAC5329FC8A9700332D01 /* LaunchScreen.storyboard in Resources */,
-				033151652A4DA25600D95B4C /* untitled.mtl in Resources */,
 				03EFAC5429FC8A9700332D01 /* Main.storyboard in Resources */,
 				03EFAC5529FC8A9700332D01 /* Assets.xcassets in Resources */,
-				0331516A2A4DA30500D95B4C /* UtahTeapot_albedo.jpeg in Resources */,
-				033151672A4DA25600D95B4C /* untitled.obj in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -316,6 +329,7 @@
 				03C040542A3E646900E1DB32 /* ModelIOExtensions.swift in Sources */,
 				035C20032A0C1F6200012346 /* Draw.swift in Sources */,
 				030C4B7729FA826F00E577C7 /* AppDelegate.swift in Sources */,
+				0392AFD82BF5676C000DA635 /* Camera.swift in Sources */,
 				03AF9F3D2A3E83B800744B9C /* SceneManager.swift in Sources */,
 				03D24FC62A0515B2007FB4D0 /* Math.swift in Sources */,
 			);
