@@ -24,7 +24,7 @@ class Scene {
         
         CreateCamera()
         
-        var entity = Entity(Translation: SIMD3<Float>(-10,-2,35), Rotation: SIMD3<Float>(0,-90,0), Scale: SIMD3<Float>(0.05,0.05,0.05), Mesh: m_AssetLoader.LoadAsset(Path: "untitled"))
+        var entity = Entity(Translation: SIMD3<Float>(-10,-2,35), Rotation: SIMD3<Float>(0,-90,0), Scale: SIMD3<Float>(0.05,0.05,0.05), Mesh: m_AssetLoader.LoadAsset(Path: "Utah_Teapot"))
         m_Entities.append(entity)
         
         entity = Entity(Translation: SIMD3<Float>(10,0,35), Rotation: SIMD3<Float>(0,-90,0), Scale: SIMD3<Float>(3,3,3), Mesh: m_AssetLoader.LoadAsset(Path: "Box"))

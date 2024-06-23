@@ -17,4 +17,8 @@ xcuserdata/
 **/xcshareddata/WorkspaceSettings.xcsettings
 
 # Ignore the Resources directory
-Titanium/Resources
+Titanium/Resources/*
+!Titanium/Resources/Box/
+!Titanium/Resources/Box/**
+!Titanium/Resources/Utah_Teapot/
+!Titanium/Resources/Utah_Teapot/**

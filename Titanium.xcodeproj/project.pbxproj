@@ -25,11 +25,11 @@
 		031B5D462A35E6CF00D33ED6 /* Shader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030C4BBC29FB02F500E577C7 /* Shader.metal */; };
 		031B5D472A35E6CF00D33ED6 /* Mesh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C269742A0AABBE000A998C /* Mesh.swift */; };
 		031B5D482A35E6CF00D33ED6 /* Light.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0308B3572A2124FA00CA9148 /* Light.swift */; };
+		034DC4062C28502200126867 /* Utah_Teapot.obj in Resources */ = {isa = PBXBuildFile; fileRef = 034DC4052C28502200126867 /* Utah_Teapot.obj */; };
 		034F1E7C2A1A99E300B01E7C /* Entity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034F1E7B2A1A99E300B01E7C /* Entity.swift */; };
 		035C20032A0C1F6200012346 /* Draw.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035C20022A0C1F6200012346 /* Draw.swift */; };
 		0392AFD82BF5676C000DA635 /* Camera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0392AFD72BF5676B000DA635 /* Camera.swift */; };
 		03ACB8572BA775D700D1EDAA /* untitled.mtl in Resources */ = {isa = PBXBuildFile; fileRef = 03ACB8532BA775D700D1EDAA /* untitled.mtl */; };
-		03ACB8582BA775D700D1EDAA /* untitled.obj in Resources */ = {isa = PBXBuildFile; fileRef = 03ACB8542BA775D700D1EDAA /* untitled.obj */; };
 		03ACB8592BA775D700D1EDAA /* UtahTeapot_albedo.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 03ACB8552BA775D700D1EDAA /* UtahTeapot_albedo.jpeg */; };
 		03AF9F3D2A3E83B800744B9C /* SceneManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03AF9F3C2A3E83B800744B9C /* SceneManager.swift */; };
 		03AF9F3E2A3E83B800744B9C /* SceneManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03AF9F3C2A3E83B800744B9C /* SceneManager.swift */; };
@@ -55,11 +55,11 @@
 		030C4BBA29FADADB00E577C7 /* Renderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renderer.swift; sourceTree = "<group>"; };
 		030C4BBC29FB02F500E577C7 /* Shader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shader.metal; sourceTree = "<group>"; };
 		031B5D492A35E7D300D33ED6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		034DC4052C28502200126867 /* Utah_Teapot.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Utah_Teapot.obj; sourceTree = "<group>"; };
 		034F1E7B2A1A99E300B01E7C /* Entity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Entity.swift; sourceTree = "<group>"; };
 		035C20022A0C1F6200012346 /* Draw.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Draw.swift; sourceTree = "<group>"; };
 		0392AFD72BF5676B000DA635 /* Camera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Camera.swift; sourceTree = "<group>"; };
 		03ACB8532BA775D700D1EDAA /* untitled.mtl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = untitled.mtl; sourceTree = "<group>"; };
-		03ACB8542BA775D700D1EDAA /* untitled.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = untitled.obj; sourceTree = "<group>"; };
 		03ACB8552BA775D700D1EDAA /* UtahTeapot_albedo.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = UtahTeapot_albedo.jpeg; sourceTree = "<group>"; };
 		03AF9F3C2A3E83B800744B9C /* SceneManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneManager.swift; sourceTree = "<group>"; };
 		03C040512A3E3A0500E1DB32 /* AssetLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetLoader.swift; sourceTree = "<group>"; };
@@ -136,8 +136,8 @@
 		03ACB8562BA775D700D1EDAA /* Utah_Teapot */ = {
 			isa = PBXGroup;
 			children = (
+				034DC4052C28502200126867 /* Utah_Teapot.obj */,
 				03ACB8532BA775D700D1EDAA /* untitled.mtl */,
-				03ACB8542BA775D700D1EDAA /* untitled.obj */,
 				03ACB8552BA775D700D1EDAA /* UtahTeapot_albedo.jpeg */,
 			);
 			path = Utah_Teapot;
@@ -292,9 +292,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				034DC4062C28502200126867 /* Utah_Teapot.obj in Resources */,
 				030C4B7B29FA827200E577C7 /* Assets.xcassets in Resources */,
 				03ACB8572BA775D700D1EDAA /* untitled.mtl in Resources */,
-				03ACB8582BA775D700D1EDAA /* untitled.obj in Resources */,
 				03E305A72BC1C6E8006718BE /* Box.mtl in Resources */,
 				03ACB8592BA775D700D1EDAA /* UtahTeapot_albedo.jpeg in Resources */,
 				030C4B7E29FA827200E577C7 /* Main.storyboard in Resources */,
