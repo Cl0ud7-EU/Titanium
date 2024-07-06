@@ -24,7 +24,7 @@ class Scene {
         
         CreateCamera()
         
-        var entity = Entity(Translation: SIMD3<Float>(-10,-2,35), Rotation: SIMD3<Float>(0,-90,0), Scale: SIMD3<Float>(0.05,0.05,0.05), Mesh: m_AssetLoader.LoadAsset(Path: "Utah_Teapot"))
+        var entity = Entity(Translation: SIMD3<Float>(-10,-2, 35), Rotation: SIMD3<Float>(0,-90,0), Scale: SIMD3<Float>(0.05,0.05,0.05), Mesh: m_AssetLoader.LoadAsset(Path: "Utah_Teapot"))
         m_Entities.append(entity)
         
         entity = Entity(Translation: SIMD3<Float>(10,0,35), Rotation: SIMD3<Float>(0,-90,0), Scale: SIMD3<Float>(3,3,3), Mesh: m_AssetLoader.LoadAsset(Path: "Box"))
@@ -38,25 +38,25 @@ class Scene {
         
         CreatePointLight(Position: SIMD3<Float>(-12.0, 0.0, 35.0), Color: SIMD3<Float>(0.0, 1.0, 0.0), Intensity: 1.0, Radius: 5.5)
         
-        CreateSpotLight(Position: SIMD3<Float>(-12.0, 20.0, 35.0), Direction: SIMD3<Float>(-90.0, 0.0, 0.0), Color: SIMD3<Float>(0.0, 1.0, 0.0), Intensity: 1.0, Angle: 50);
+        CreateSpotLight(Position: SIMD3<Float>(-10.0, 0.0, 0.0), Direction: SIMD3<Float>(0.0, 0.0, 0.0), Color: SIMD3<Float>(0.0, 1.0, 0.0), Intensity: 1.0, Angle: 50);
         //CreateSpotLight(Position: SIMD3<Float>(0.0, 5.0, 35.0), Direction: SIMD3<Float>(-1.0, 0.5, 0.1), Color: SIMD3<Float>(1.0, 0.0, 0.0), Intensity: 1.0, Angle: 5);
         
-        entity = Entity(Translation: SIMD3<Float>(0,-10,40), Rotation: SIMD3<Float>(90, 0, 0), Scale: SIMD3<Float>(20,20,20), Mesh: m_AssetLoader.createQuadMesh()!)
+        entity = Entity(Translation: SIMD3<Float>(0,-100,300), Rotation: SIMD3<Float>(90, 0, 0), Scale: SIMD3<Float>(200,200,200), Mesh: m_AssetLoader.createQuadMesh()!)
         m_Entities.append(entity)
-        entity = Entity(Translation: SIMD3<Float>(0,10,40), Rotation: SIMD3<Float>(-90, 0, 0), Scale: SIMD3<Float>(20,20,20), Mesh: m_AssetLoader.createQuadMesh()!)
+        entity = Entity(Translation: SIMD3<Float>(0,100,300), Rotation: SIMD3<Float>(-90, 0, 0), Scale: SIMD3<Float>(200,200,200), Mesh: m_AssetLoader.createQuadMesh()!)
         m_Entities.append(entity)
-        entity = Entity(Translation: SIMD3<Float>(18,0,40), Rotation: SIMD3<Float>(0, 90, 0), Scale: SIMD3<Float>(20,20,20), Mesh: m_AssetLoader.createQuadMesh()!)
+        entity = Entity(Translation: SIMD3<Float>(180,0,300), Rotation: SIMD3<Float>(0, 90, 0), Scale: SIMD3<Float>(200,200,200), Mesh: m_AssetLoader.createQuadMesh()!)
         m_Entities.append(entity)
-        entity = Entity(Translation: SIMD3<Float>(-18,0,40), Rotation: SIMD3<Float>(0, -90, 0), Scale: SIMD3<Float>(20,20,20), Mesh: m_AssetLoader.createQuadMesh()!)
+        entity = Entity(Translation: SIMD3<Float>(-180,0,300), Rotation: SIMD3<Float>(0, -90, 0), Scale: SIMD3<Float>(200,200,200), Mesh: m_AssetLoader.createQuadMesh()!)
         m_Entities.append(entity)
-        entity = Entity(Translation: SIMD3<Float>(0,0,50), Rotation: SIMD3<Float>(0, 0, 0), Scale: SIMD3<Float>(20,20,20), Mesh: m_AssetLoader.createQuadMesh()!)
+        entity = Entity(Translation: SIMD3<Float>(0,0,300), Rotation: SIMD3<Float>(0, 0, 0), Scale: SIMD3<Float>(200,200,200), Mesh: m_AssetLoader.createQuadMesh()!)
         m_Entities.append(entity)
         
     }
     
     func CreateCamera()
     {
-        m_Cameras.append(Camera(position: SIMD3<Float>(0,0,0), nearPlane: 0.1, farPlane: 1000, width: 1280, height: 720))
+        m_Cameras.append(Camera(position: SIMD3<Float>(0,0,-60), nearPlane: 0.1, farPlane: 1000, width: 1280, height: 720))
     }
     
     func CreateSpotLight(Position: SIMD3<Float>, Direction: SIMD3<Float>, Color: SIMD3<Float>, Intensity: Float, Angle: Float) {

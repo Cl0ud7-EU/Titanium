@@ -176,9 +176,11 @@ class Renderer: NSObject, MTKViewDelegate {
         LastFrameTime = CurrentTime
         
         UpdateLightBuffers()
-        UpdateFrameConstants()
 
-        CalculateSpotLightShadowMaps()
+        //CalculateSpotLightShadowMaps()
+        
+        let Camera = m_Camera
+        UpdateFrameConstants(Camera: Camera)
         
         guard let RenderPassDescriptor = view.currentRenderPassDescriptor else { return }
         
@@ -196,7 +198,7 @@ class Renderer: NSObject, MTKViewDelegate {
         RenderCommandEncoder.setFragmentBuffer(m_SpotLightsBuffer, offset: m_SpotLightsBufferOffset, index: 4)
         RenderCommandEncoder.setFragmentBuffer(m_ConstantBuffer, offset: m_ConstantsBufferOffset, index: 2)
         
-        DrawEntities(RenderCommandEncoder: RenderCommandEncoder)
+        DrawEntities(RenderCommandEncoder: RenderCommandEncoder, Camera: Camera)
         
         RenderCommandEncoder.endEncoding();
         
@@ -211,17 +213,18 @@ class Renderer: NSObject, MTKViewDelegate {
         m_FrameIndex += 1
     }
     
-    func DrawEntities(RenderCommandEncoder: MTLRenderCommandEncoder) {
+    func DrawEntities(RenderCommandEncoder: MTLRenderCommandEncoder, Camera: Camera) {
         for (Index, Entity) in m_Scene.m_Entities.enumerated() {
             if (Index <= 1) //Check this part bc it should be the same for all the passes in a frame
             {
                 m_Scene.ApplyRotationY(Entity: Entity, DeltaTime: DeltaTime)
             }
-            UpdateEntityConstants(Translation: Entity.m_Translation, Rotation: Entity.m_Rotation, Scale: Entity.m_Scale, EntityIndex: Index)
+            UpdateEntityConstants(Translation: Entity.m_Translation, Rotation: Entity.m_Rotation, Scale: Entity.m_Scale, EntityIndex: Index, Camera: Camera)
             RenderCommandEncoder.setVertexBuffer(m_EntityConstBuffer, offset: m_EntityConstsBufferOffset, index: 2)
             
             DrawMeshes(RenderCommandEncoder: RenderCommandEncoder, Entity: Entity, Index: Index)
         }
+        DeltaTime = 0
     }
     
     func DrawMeshes(RenderCommandEncoder: MTLRenderCommandEncoder, Entity: Entity, Index: Int) {
@@ -271,9 +274,9 @@ class Renderer: NSObject, MTKViewDelegate {
         return RenderPipelineDescriptor
     }
     
-    func UpdateEntityConstants(Translation: SIMD3<Float>, Rotation: SIMD3<Float>, Scale: SIMD3<Float>, EntityIndex: Int) {
+    func UpdateEntityConstants(Translation: SIMD3<Float>, Rotation: SIMD3<Float>, Scale: SIMD3<Float>, EntityIndex: Int, Camera: Camera) {
         
-        let ModelViewMatrix = CreateModelViewMatrix(Translation: Translation, Rotation: Rotation, Scale: Scale, CameraPosition: m_CameraPosition)
+        let ModelViewMatrix = CreateModelViewMatrix(Translation: Translation, Rotation: Rotation, Scale: Scale, Camera: Camera)
         var Constants = EntityConstants(m_ModelViewMatrix: ModelViewMatrix)
         
         m_EntityConstsBufferOffset = ((m_FrameIndex % g_MaxFramesInFlight) * m_MaxDrawableEntities) + m_EntityConstsStride * EntityIndex
@@ -281,10 +284,9 @@ class Renderer: NSObject, MTKViewDelegate {
         BufferData.copyMemory(from: &Constants, byteCount: m_EntityConstsSize)
     }
     
-    func UpdateFrameConstants() {
+    func UpdateFrameConstants(Camera: Camera) {
         
-        let Camera = m_Camera
-        let AspectRatio = Float(m_View.drawableSize.width / m_View.drawableSize.height)
+//        let AspectRatio = Float(m_View.drawableSize.width / m_View.drawableSize.height)
 //        let CanvasWidth: Float = 1280
 //        let CanvasHeight = CanvasWidth / AspectRatio
 //        let ProjectionMatrix = simd_float4x4(OrthographicProjection: CanvasWidth / 2,
@@ -294,13 +296,14 @@ class Renderer: NSObject, MTKViewDelegate {
 //                                             near: 0.1,
 //                                             far: 100.0)
        
-        let ProjectionMatrix = CreatePerspectiveProjMatrix(PerspectiveProjectionFoVY: 45.0 * (Float.pi/180),
+        let ProjectionMatrix = CreatePerspectiveProjMatrix(PerspectiveProjectionFoVY: Camera.m_ViewAngle ?? 45.0 * (Float.pi/180),
                                                            aspectRatio: Camera.m_AspectRatio,
                                                            nearPlane: Camera.m_NearPlane,
                                                            farPlane: Camera.m_FarPlane)
-        
         // ViewMatrix
-        let ViewMatrix = simd_float4x4(Translate: -Camera.m_Position, M: matrix_identity_float4x4)
+        
+        //---------------------------------- Revisar esto -------------------------------------------------------------//
+        let ViewMatrix = CreateViewMatrix(Camera: Camera)
         
         var Constants = FrameConstants(m_ProjectionMatrix: ProjectionMatrix, m_ViewMatrix: ViewMatrix, m_CameraPosition: Camera.m_Position, m_PointLightCount: UInt32(m_Scene.m_PointLights.count), m_SpotLightCount: UInt32(m_Scene.m_SpotLights.count))
         
@@ -377,6 +380,7 @@ class Renderer: NSObject, MTKViewDelegate {
         
         let RenderPipelineState: MTLRenderPipelineState
         let RenderPipelineStateDescriptor = MTLRenderPipelineDescriptor()
+        RenderPipelineStateDescriptor.vertexDescriptor = m_Scene.m_AssetLoader.vertexDescriptor
         RenderPipelineStateDescriptor.vertexFunction = m_Library.makeFunction(name: "shadowVertexFunction")!
         RenderPipelineStateDescriptor.fragmentFunction = m_Library.makeFunction(name: "shadowFragmentFunction")!
         RenderPipelineStateDescriptor.depthAttachmentPixelFormat = m_SpotShadowMaps.pixelFormat
@@ -387,29 +391,31 @@ class Renderer: NSObject, MTKViewDelegate {
             
             for (index, spotLight) in spotLights.enumerated() {
                 let SpotCamera = Camera(position: spotLight.m_Position,
-                                        direction: spotLight.m_DirectionViewS,
+                                        rotation: spotLight.m_Direction,
                                         nearPlane: 0.1,
                                         farPlane: 300,
-                                        viewAngle: spotLight.m_ColorAndAngle.w,
+                                        viewAngle: 45,
                                         aspectRatio: 1.0)
                 
                 ShadowPassDescriptor.depthAttachment.texture = m_SpotShadowMaps
                 ShadowPassDescriptor.depthAttachment.slice = index;
                 
-                let ProjectionMatrix = CreatePerspectiveProjMatrix(PerspectiveProjectionFoVY: SpotCamera.m_ViewAngle ?? 45.0 * (Float.pi/180), aspectRatio: SpotCamera.m_AspectRatio, nearPlane: SpotCamera.m_NearPlane, farPlane: SpotCamera.m_FarPlane)
+                UpdateFrameConstants(Camera: SpotCamera)
                 
                 guard let ShadowCommandEncoder = CommandBuffer.makeRenderCommandEncoder(descriptor: ShadowPassDescriptor) else {return}
                 ShadowCommandEncoder.label = "SpotShadow %i \(index)"
                 
-                DrawEntities(RenderCommandEncoder: ShadowCommandEncoder)
-                
                 ShadowCommandEncoder.setDepthStencilState(m_DepthStencilState)
                 ShadowCommandEncoder.setRenderPipelineState(RenderPipelineState)
-                ShadowCommandEncoder.endEncoding()
+                
+                DrawEntities(RenderCommandEncoder: ShadowCommandEncoder, Camera: SpotCamera)
                 
                 let renderpass = MTLRenderPassDescriptor()
-                
+                ShadowCommandEncoder.endEncoding()
             }
+            
+            CommandBuffer.commit();
+            
         } catch {
             print("Failed to create shadow render pipeline state")
         }

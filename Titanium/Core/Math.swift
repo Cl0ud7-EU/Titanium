@@ -85,7 +85,7 @@ extension simd_float4x4 {
         
         self.init(SIMD4<Float>(ScaleX, 0,  0,  0),
                   SIMD4<Float>(0, ScaleY,  0,  0),
-                  SIMD4<Float>(0,  0, k, 1.0),
+                  SIMD4<Float>(0,  0, k, 1),
                   SIMD4<Float>(0,  0, -near * k,  0))
     }
 }
@@ -99,13 +99,15 @@ func EulerToQuat(Rot: SIMD3<Float>) -> SIMD4<Float> {
     let CosZ = cos(Rot.z * 0.5)
     let SinZ = sin(Rot.z * 0.5)
     
-    return (SIMD4<Float>(CosZ * CosY * SinX - SinZ * SinY * CosX,
-                         CosZ * SinY * CosX + SinZ * CosY * SinX,
-                         SinZ * CosY * CosX - CosZ * SinY * SinX,
-                         CosZ * CosY * CosX + SinZ * SinY * SinX))
+    let Qx = CosZ * CosY * SinX - SinZ * SinY * CosX
+    let Qy = CosZ * SinY * CosX + SinZ * CosY * SinX
+    let Qz = SinZ * CosY * CosX - CosZ * SinY * SinX
+    let Qw = CosZ * CosY * CosX + SinZ * SinY * SinX
+    
+    return (SIMD4<Float>(Qx,Qy,Qz,Qw))
 }
 
-func CreateModelViewMatrix(Translation: SIMD3<Float>, Rotation: SIMD3<Float>, Scale: SIMD3<Float>,  CameraPosition: SIMD3<Float>) -> simd_float4x4{
+func CreateModelViewMatrix(Translation: SIMD3<Float>, Rotation: SIMD3<Float>, Scale: SIMD3<Float>,  Camera: Camera) -> simd_float4x4{
     
     // ModelMatrix
     let ScaleMatrix = DoScale(Scale: Scale)
@@ -117,10 +119,30 @@ func CreateModelViewMatrix(Translation: SIMD3<Float>, Rotation: SIMD3<Float>, Sc
     let ModelMatrix = TranslateMatrix * RotationMatrix * ScaleMatrix
     
     // ViewMatrix
-    let ViewMatrix = GetViewMatrix(CameraPosition: -CameraPosition)
+    let ViewMatrix = CreateViewMatrix(Camera: Camera)
     
     let ModelViewMatrix = ViewMatrix * ModelMatrix
-    return ModelMatrix
+    return ModelViewMatrix
+}
+
+func CreateViewMatrix(Camera: Camera) -> simd_float4x4 {
+    
+    // This is a Left-Handed system
+    let Up = SIMD3<Float>(0, 1, 0)
+    let Forward = GetForwardVector(Rotation: Camera.m_Rotation)
+    let Right = normalize(cross(Up, Forward))
+    let UpAdjusted = cross(Forward, Right)
+    
+    let Orientation = matrix_float4x4(columns: (
+        SIMD4<Float>(Right, 0),
+        SIMD4<Float>(UpAdjusted, 0),
+        SIMD4<Float>(Forward, 0),
+        SIMD4<Float>(0, 0, 0, 1)
+    ))
+    
+    let Translation = Translate(Translation: -Camera.m_Position)
+        
+    return Translation * Orientation
 }
 
 func CreatePerspectiveProjMatrix(PerspectiveProjectionFoVY fovYRadians: Float,
@@ -151,6 +173,7 @@ func DoScale(Scale: SIMD3<Float>) -> simd_float4x4 {
     return simd_float4x4(Scale: Scale, M: matrix_identity_float4x4)
 }
 
-func GetViewMatrix(CameraPosition: SIMD3<Float>) -> simd_float4x4 {
-    return Translate(Translation: -CameraPosition)
+func GetForwardVector(Rotation: SIMD3<Float>) -> SIMD3<Float> {
+    let RotationMatrix = Rotate(Rotation: Rotation)
+    return normalize(SIMD3<Float>(RotationMatrix.columns.2.x, RotationMatrix.columns.2.y, RotationMatrix.columns.2.z))
 }
